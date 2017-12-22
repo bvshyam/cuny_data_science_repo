@@ -1,0 +1,13 @@
+Question typed:How old are you?
+Question interpreted:how old are you ?
+Answer by bot:... i 'm 31 years old : )                               
+Question typed:what can you do?
+Question interpreted:what can you do ?
+Answer by bot:think of me as shyam at an interview. ask me `` interview '' related questions. what books i read , what have i been doing lately or to tell you a joke .      
+Question typed:where are you?
+Question interpreted:where are you ?
+Answer by bot:is the physical location important to you ?                               
+Question typed:yes
+Question interpreted:yes
+Answer by bot:then it you shyam                                   
+Question typed:exit

@@ -1,0 +1,10 @@
+Question typed:How are you?
+Question interpreted:how are you ?
+Answer by bot:i 'm perfectly fine. the servers are paid and in case of network failure i 'll automatically be available from a different region .               
+Question typed:hi
+Question interpreted:hi
+Answer by bot:greetings !                                     
+Question typed:okay
+Question interpreted:doky
+Answer by bot:then , you                                    
+Question typed:exit

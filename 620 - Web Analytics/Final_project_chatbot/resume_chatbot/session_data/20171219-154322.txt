@@ -1,0 +1,4 @@
+Question typed:hi
+Question interpreted:hi
+Answer by bot:greetings !                                     
+Question typed:exit

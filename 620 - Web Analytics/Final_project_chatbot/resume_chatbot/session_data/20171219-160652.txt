@@ -1,0 +1,7 @@
+Question typed:what can you do for me?
+Question interpreted:what can you do for me ?
+Answer by bot:think of me as shyam at an ask me `` interview '' related questions. what books i read , what have i doing lately or to tell you a joke .        
+Question typed:tell me a joke
+Question interpreted:tell me a joke
+Answer by bot:ok.. here it is. roses are \ # ff0000 / violets are \ # 0000ff / all my base / belong to you .               
+Question typed:exit
