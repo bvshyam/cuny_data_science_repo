@@ -1,0 +1,184 @@
+---
+title: "Text Mining"
+author: "Shyam BV"
+date: "November 3, 2016"
+output: html_document
+---
+
+
+Corpus Link:  https://spamassassin.apache.org/publiccorpus/
+
+Corpus consists of Spam and ham emails. These emails are analyzed with a sample size of 300 emails. Prediction is made on the future emails.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(stringr)
+library(tm)
+library(SnowballC)
+library(RWeka)
+library(RTextTools)
+library(topicmodels)
+library(rio)
+library(tidyr)
+library(DT)
+```
+
+
+###Loading all the necessary files to corpus
+
+```{r dataextension,eval=TRUE}
+
+#Ham
+filenames_ham <-  list.files("C:/Users/paperspace/Google Drive/CUNY/Courses/CUNY-repository/607/Week 10 - Text mining/Data/20030228_easy_ham.tar/20030228_easy_ham/easy_ham/")
+
+
+full_ham_corpus <- Corpus(VectorSource(""))
+
+
+for(i in 1:length(filenames_ham)) {
+
+temp_ham <- readLines(str_c("C:/Users/paperspace/Google Drive/CUNY/Courses/CUNY-repository/607/Week 10 - Text mining/Data/20030228_easy_ham.tar/20030228_easy_ham/easy_ham/",filenames_ham[i])) %>% str_c(collapse = "")
+
+temp_ham_corpus <- Corpus(VectorSource(temp_ham))
+
+full_ham_corpus <- c(full_ham_corpus,temp_ham_corpus)
+}
+
+#spam
+
+filenames_spam <-  list.files("C:/Users/paperspace/Google Drive/CUNY/Courses/CUNY-repository/607/Week 10 - Text mining/Data/20050311_spam_2.tar/20050311_spam_2/spam_2")
+
+
+full_spam_corpus <- Corpus(VectorSource(""))
+
+
+for(i in 1:length(filenames_spam)) {
+
+temp_spam <- readLines(str_c("C:/Users/paperspace/Google Drive/CUNY/Courses/CUNY-repository/607/Week 10 - Text mining/Data/20050311_spam_2.tar/20050311_spam_2/spam_2/",filenames_spam[i])) %>% str_c(collapse = "")
+
+temp_spam_corpus <- Corpus(VectorSource(temp_spam))
+
+full_spam_corpus <- c(full_spam_corpus,temp_spam_corpus)
+}
+
+
+```
+
+
+
+###Sample data setup 
+
+Combine all the datasets which has spam and ham emails
+
+
+```{r datasetup,eval=TRUE}
+
+total_corpus <- Corpus(VectorSource(""))
+total_corpus1 <- Corpus(VectorSource(""))
+
+
+total_corpus <- c(full_ham_corpus,full_spam_corpus)
+
+total_corpus1 <- total_corpus
+
+
+```
+
+
+
+###Create transformations
+
+Perform transformations on the core corpus
+
+
+```{r transformations, eval=TRUE}
+
+total_corpus1 <- tm_map(total_corpus1, removeNumbers)
+
+total_corpus1 <- tm_map(total_corpus1, removeWords,words=stopwords("en"))
+
+
+total_corpus1 <- tm_map(total_corpus1, str_replace_all, pattern = "[[:punct:]]", replacement = " ")
+
+
+total_corpus1 <- tm_map(total_corpus1,stripWhitespace)
+
+
+total_corpus1 <- tm_map(total_corpus1,removePunctuation)
+
+
+
+total_corpus1 <- tm_map(total_corpus1, tolower)
+
+
+
+total_corpus1 <- tm_map(total_corpus1, stemDocument)
+
+total_corpus1 <- tm_map(total_corpus1, PlainTextDocument)
+
+
+
+for(i in 1:300){
+ meta(total_corpus1[[i]], "category") <- "ham"
+}
+
+
+for(i in 2502:2801){
+   meta(total_corpus1[[i]], "category") <- "spam"
+}
+
+rearrange_total_corpus <- c(total_corpus1[c(2:300)],total_corpus1[c(2503:2801)],total_corpus1[c(301:2501)],
+                            total_corpus1[c(2802:length(total_corpus1))])
+
+
+
+```
+
+
+###Create term document matrix
+
+
+Create a document term matrix and remove the sparse terms at 80%
+
+
+```{r dtmofdata,eval=TRUE}
+
+dtm_total_corpus <- DocumentTermMatrix(rearrange_total_corpus)
+
+dtm_total_corpus <- removeSparseTerms(dtm_total_corpus,.80)
+
+```
+
+
+
+###Create container
+
+Gather all the documents in a container
+
+```{r container,eval=TRUE}
+category_label <- unlist(meta(rearrange_total_corpus,"category"))
+
+container <- create_container(dtm_total_corpus,category_label,trainSize = 1:length(unlist(meta(rearrange_total_corpus,"category"))),testSize = (length(unlist(meta(rearrange_total_corpus,"category"))) +1) :length(rearrange_total_corpus),virgin = FALSE)
+
+```
+
+
+###create an supervised model
+
+
+Train the SVM model and show the output
+
+```{r supervisedprogram}
+
+svm_model <- train_model(container, "SVM")
+svm_out <- classify_model(container, svm_model)
+
+datatable(svm_out)
+
+summary(svm_out)
+
+
+```
+
+Conclusion: The created model predicts the future emails.  It correctly predicts around 90% of emails. We can provide more training corpus to get the perfect model. 

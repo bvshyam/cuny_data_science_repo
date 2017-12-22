@@ -1,0 +1,43 @@
+---
+title: "Tidyr_practice"
+author: "Shyam BV"
+date: "September 29, 2016"
+output: pdf_document
+---
+
+```{r setup1, eval=TRUE}
+
+
+library(dplyr)
+library(tidyr)
+library(devtools)
+#devtools::install_github("rstudio/EDAWR")
+library(EDAWR)
+library(stringr)
+
+install.packages("rmarkdown")
+library(rmarkdown)
+```
+
+
+```{r read-data,eval=TRUE}
+
+
+test1 <- storms
+tb
+cases
+names(cases)[-2]
+
+storms %>% data.frame(year =str_sub(storms$date,1,4)) %>% 
+   
+storm <- data.frame(storm,str_sub(storm$date))
+
+head(storms)
+test <- storms %>% data.frame(year =str_sub(storms$date,1,4)) %>%
+  
+gather(test1,"year","measure",3:4)
+
+   
+
+```
+
