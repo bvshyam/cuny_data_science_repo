@@ -1,0 +1,35 @@
+---
+title: "Discussion 3 - Spotify"
+author: "Shyam BV"
+date: "June 25, 2017"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+##Overview
+****
+
+Christopher Johnson is explaining about the recommendation system which is built on Spotify. He also explains about the different methods which they tried before ending up with the current setup.
+
+##Description
+***
+
+
+Spotify wants to recommend its users on the songs which the user listens and want to recommend songs similar to that category.  They follow different methods to do that.
+
+	1. Explain how other companies and Spotify is using recommendation systems.
+	2. Spotify is using machine learning recommendations instead of manual tagging.
+	3. It gathers users listening matrix by 0 or 1. And then it performs regular matrix factorization model. This method is called as implicit data rather than regular ratings matrix(explicit data).
+	4. Initially Hadoop is used for factoring. He explained how it works and the drawbacks of using it.
+	5. Next they switched to Spark to perform all the matrix factorizations and create recommendations list. 
+	6. Spark is much faster than Hadoop. As it uses in memory than disk method which Hadoop uses.
+	7. He also explained about the methods full and half gridify in spark to achieve higher performance. 
+
+##Cons or things which was not explained
+***
+
+	1. If a user listens to particular track and they did not like it. How the system will figure out if the user likes that track or not. 
+	2. How the users will say about disliked song?
+	3. What if the track was cut short? Will it still by counted as 0 or 1?
