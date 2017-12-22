@@ -1,0 +1,512 @@
+}
+test
+test <- {0}
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+test <- rbind(p)
+}
+test
+test <- {0}
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+test <- c(rbind(),p)
+}
+test
+test <- data.frame()
+test <- rbind() + p
+test <- data.frame()
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+test <- rbind() + p
+}
+test
+test <- data.frame(p)
+test <- data.frame(p)
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+test <- rbind(test,p)
+}
+test
+prob_fico_lm <- data.frame(p)
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,p)
+}
+prob_fico_lm
+prob_fico_lm <- data.frame(p)
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,p,i)
+}
+prob_fico_lm
+prob_fico_lm <- data.frame(p,ficoscore)
+data.frame(p,ficoscore)
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,p,i)
+}
+prob_fico_lm
+remove(prob_fico_lm)
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,p,i)
+}
+prob_fico_lm
+#remove(prob_fico_lm)
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm$p <- rbind(prob_fico_lm,p,i)
+prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm$p <- rbind(prob_fico_lm,p)
+prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+FICO_SCORE = i
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm$p <- rbind(prob_fico_lm,p)
+prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm$p <- rbind(prob_fico_lm,p)
+prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm$p <- rbind(prob_fico_lm,p)
+#prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,p)
+#prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm
+#remove(prob_fico_lm)
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,c(p,i))
+#prob_fico_lm$i <- rbind(prob_fico_lm,i)
+}
+prob_fico_lm
+#remove(prob_fico_lm)
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point(size=1,alpha=0.8) + geom_smooth(method = "loess")
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point()
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point() +geom_smooth(method="loess")
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point() +geom_smooth(method="glm")
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point() +geom_smooth(method="gam")
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point() +geom_smooth(method="loess")
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point() +geom_smooth(method="rlm")
+prob_fico_lm
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point()
+ggplot(prob_fico_lm,aes(x=X682,y=X0.999998013354434)) + geom_point()
+ggplot(prob_fico_lm,aes(x=X682,y=X0.999998013354434)) + geom_point() +geom_smooth(method="glm")
+ggplot(prob_fico_lm,aes(x=X682,y=X0.999998013354434)) + geom_point() +geom_smooth(method="loess")
+loans_glm <- glm(int_rate ~ fico_score,loans_summary)
+loans_glm <- glm(int_rate ~ fico_score,loans_summary)
+loans_glm <- glm(int_rate ~ fico_score,data=loans_summary,family = "binomial")
+loans_glm <- glm(X0.999998013354434 ~ X682,data=prob_fico_lm,family = "binomial")
+summary(loans_glm)
+summary(loans_glm)
+ggplot(prob_fico_lm,aes(x=X682,y=X0.999998013354434)) + geom_point() +geom_smooth(method="loess")
+ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point()
+rename(prob_fico_lm,fico_score = X682,probability = X0.999998013354434)
+ggplot(prob_fico_lm,aes(x=prob_fico_lm,y=probability)) + geom_point() +geom_smooth(method="loess")
+ggplot(prob_fico_lm,aes(x=fico_score,y=probability)) + geom_point() +geom_smooth(method="loess")
+prob_fico_lm
+prob_fico_lm<- rename(prob_fico_lm,fico_score = X682,probability = X0.999998013354434)
+ggplot(prob_fico_lm,aes(x=fico_score,y=probability)) + geom_point() +geom_smooth(method="loess")
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + loan_status + addr_state + verification_status + home_ownership + loan_amt)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + loan_status + addr_state + verification_status + home_ownership + loan_amt,loans_summary)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + loan_status + addr_state + verification_status + home_ownership + loan_amnt,loans_summary)
+summary(interest_rate_lm)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + loan_status + verification_status + home_ownership + loan_amnt,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + verification_status + home_ownership + ,loans_summary)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + verification_status + home_ownership  ,loans_summary)
+summary(interest_rate_lm)
+str_replace_all(loans_summary$verification_status,"Source Verified","Verified")
+test <- loans_sample %>% select(c(id,loan_amnt,funded_amnt,term,int_rate,emp_length,home_ownership,annual_inc,verification_status,addr_state,fico_range_low,fico_range_high,issue_d,loan_status,purpose,total_pymnt_inv)) %>%
+mutate(fico_score=(fico_range_low+fico_range_high)/2) %>%
+mutate(term1=as.numeric(str_trim(str_replace(term,"months","")))) %>%
+select(-term,-fico_range_low,-fico_range_high) %>%
+mutate(emp_length=str_replace(emp_length,c("n/a"),"NA")) %>%
+mutate(int_rate=(as.numeric(str_replace(as.character(int_rate),"%",""))))  %>%  mutate(total_pymnt=(funded_amnt+(funded_amnt*int_rate*(term1/12))/100)) %>%
+mutate(verification_status = str_replace_all(verification_status,"Source Verified","Verified"))
+loans_summary <-
+loans_sample %>% select(c(id,loan_amnt,funded_amnt,term,int_rate,emp_length,home_ownership,annual_inc,verification_status,addr_state,fico_range_low,fico_range_high,issue_d,loan_status,purpose,total_pymnt_inv)) %>%
+mutate(fico_score=(fico_range_low+fico_range_high)/2) %>%
+mutate(term1=as.numeric(str_trim(str_replace(term,"months","")))) %>%
+select(-term,-fico_range_low,-fico_range_high) %>%
+mutate(emp_length=str_replace(emp_length,c("n/a"),"NA")) %>%
+mutate(int_rate=(as.numeric(str_replace(as.character(int_rate),"%",""))))  %>%  mutate(total_pymnt=(funded_amnt+(funded_amnt*int_rate*(term1/12))/100)) %>%
+mutate(verification_status = str_replace_all(verification_status,"Source Verified","Verified"))
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + verification_status + home_ownership  ,loans_summary)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + verification_status + home_ownership  ,loans_summary)
+loans_summary <-
+loans_sample %>% select(c(id,loan_amnt,funded_amnt,term,int_rate,emp_length,home_ownership,annual_inc,verification_status,addr_state,fico_range_low,fico_range_high,issue_d,loan_status,purpose,total_pymnt_inv)) %>%
+mutate(fico_score=(fico_range_low+fico_range_high)/2) %>%
+mutate(term1=as.numeric(str_trim(str_replace(term,"months","")))) %>%
+select(-term,-fico_range_low,-fico_range_high) %>%
+mutate(emp_length=str_replace(emp_length,c("n/a"),"NA")) %>%
+mutate(int_rate=(as.numeric(str_replace(as.character(int_rate),"%",""))))  %>%  mutate(total_pymnt=(funded_amnt+(funded_amnt*int_rate*(term1/12))/100)) %>%
+mutate(verification_status = str_replace(verification_status,"Source Verified","Verified"))
+unique(loans_summary$verification_status)
+loans_summary <-
+loans_sample %>% select(c(id,loan_amnt,funded_amnt,term,int_rate,emp_length,home_ownership,annual_inc,verification_status,addr_state,fico_range_low,fico_range_high,issue_d,loan_status,purpose,total_pymnt_inv)) %>%
+mutate(fico_score=(fico_range_low+fico_range_high)/2) %>%
+mutate(term1=as.numeric(str_trim(str_replace(term,"months","")))) %>%
+select(-term,-fico_range_low,-fico_range_high) %>%
+mutate(emp_length=str_replace(emp_length,c("n/a"),"NA")) %>%
+mutate(int_rate=(as.numeric(str_replace(as.character(int_rate),"%",""))))  %>%  mutate(total_pymnt=(funded_amnt+(funded_amnt*int_rate*(term1/12))/100))
+unique(loans_summary$verification_status)
+loans_summary <-
+loans_sample %>% select(c(id,loan_amnt,funded_amnt,term,int_rate,emp_length,home_ownership,annual_inc,verification_status,addr_state,fico_range_low,fico_range_high,issue_d,loan_status,purpose,total_pymnt_inv)) %>%
+mutate(fico_score=(fico_range_low+fico_range_high)/2) %>%
+mutate(term1=as.numeric(str_trim(str_replace(term,"months","")))) %>%
+select(-term,-fico_range_low,-fico_range_high) %>%
+mutate(emp_length=str_replace(emp_length,c("n/a"),"NA")) %>%
+mutate(int_rate=(as.numeric(str_replace(as.character(int_rate),"%",""))))  %>%  mutate(total_pymnt=(funded_amnt+(funded_amnt*int_rate*(term1/12))/100)) %>%
+mutate(verification_status = str_replace(verification_status,"Source Verified","Verified"))
+unique(loans_summary$verification_status)
+unique(loans_summary$verification_status)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + verification_status + home_ownership  ,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + verification_status  ,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + purpose  ,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + purpose + home_ownership  ,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1 + home_ownership  ,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + term1   ,loans_summary)
+summary(interest_rate_lm)
+interest_rate_lm <- lm(int_rate ~ fico_score + home_ownership  ,loans_summary)
+summary(interest_rate_lm)
+loan_summary_home <- filter(loans_summary,home_ownership==c("RENT","MORTGAGE"))
+loan_summary_home$home_ownership <- as.character(loan_summary_home$home_ownership)
+inference(y=loan_summary_home$funded_amnt,x=loan_summary1$home_ownership,est="mean",null=0,alternative="twosided",type="ht",method="theoretical")
+#Hypothesis test
+inference(y=loan_summary_home$funded_amnt,x=loan_summary_home$home_ownership,est="mean",null=0,alternative="twosided",type="ht",method="theoretical")
+inference(y=loan_summary_home$home_ownership,x=loan_summary_home$fico_score,est="mean",null = 0,alternative = "twosided",type="ht",method = "theoretical")
+loan_summary_home$home_ownership <- as.factor(loan_summary_home$home_ownership)
+inference(y=loan_summary_home$home_ownership,x=loan_summary_home$fico_score,est="mean",null = 0,alternative = "twosided",type="ht",method = "theoretical")
+inference(y=loan_summary_home$fico_score,x=loan_summary_home$home_ownership,est="mean",null = 0,alternative = "twosided",type="ht",method = "theoretical")
+inference(y=loan_summary$fico_score,x=loan_summary$home_ownership,est="mean",null = 0,alternative = "twosided",type="ht",method = "theoretical")
+inference(y=loans_summary$fico_score,x=loans_summary$home_ownership,est="mean",null = 0,alternative = "twosided",type="ht",method = "theoretical")
+inference(y=loans_summary$fico_score,x=loans_summary$home_ownership,est="mean",null = 0,alternative = "greater",type="ht",method = "theoretical")
+View(inference)
+inference(y=loans_summary$int_rate,x=loans_summary$purpose,est="mean",null = 0,alternative = "greater",type="ht",method = "theoretical")
+View(inference)
+source('C:/Users/Shyam/Google Drive/CUNY/Courses/CUNY-repository/606/Project/Dependencies/inference.R', encoding = 'UTF-8')
+loans_glm <-
+glm(int_rate ~ fico_score,data=prob_fico_lm,family = "binomial")
+loans_glm <-
+glm(int_rate ~ fico_score,data=loans_summary,family = "binomial")
+ggplot(prob_fico_lm,aes(x=fico_score,y=probability)) + geom_point() +geom_smooth(method="loess")
+library(broom)
+library(knitr)
+library(dplyr)
+library(knitr)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+ggplot(prob_fico_lm,aes(x=fico_score,y=probability)) + geom_point() +geom_smooth(method="loess")
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date)
+loan_count
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date)
+test <- data.frame(loans_count, 33)
+View(test)
+test <- data.frame(loans_count,percent= 33.33,expected_loans=n*percent)
+test <- data.frame(loans_count,percent= 33.33,expected_loans=loans_count$n*loans_count$percent)
+test <- data.frame(loans_count,percent= 33.33) %>% data.frame(expected_loans=n*percent)
+test <- data.frame(loans_count,percent= 33.33) %>% data.frame(expected_loans=n*percent)
+test <- loans_summary %>% mutate(percent= 33.33) %>% mutate(expected_loans=n*percent)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=n*percent)
+View(test)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=n*(percent/100))
+View(test)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=n+n*(percent/100))
+View(test)
+475+302+223
+loans_count <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=1000*(percent/100))
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=1000*(percent/100))
+View(test)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=sum(n)*(percent/100))
+sum(n)
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(observed_loan =loan_date)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=sum(n)*(percent/100))
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=sum(n)*(percent/100))
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date) %>% rename(expected_cout =n)
+loans_count
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=sum(loans_count)*(percent/100))
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=sum(expected_cout)*(percent/100))
+sum(expected_cout)
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date) %>% rename(observed_cout =n)
+test <- loans_count %>% mutate(percent= 33.33) %>% mutate(expected_loans=sum(observed_cout)*(percent/100))
+sum(expected_cout)
+sum(loans_count$expected_cout)
+sum(loans_count$expected_loans)
+sum(test$expected_loans)
+test <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_cout)*(percent/100))
+sum(test$expected_loans)
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date) %>% rename(observed_cout =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_cout)*(percent/100))
+sum(test$expected_loans)
+loans_count
+loans_count <- loans_count %>% mutate(percent= 3) %>% mutate(expected_loans=sum(observed_cout)*(percent/100))
+loans_count
+loans_count<-
+loans_summary %>% mutate(loan_date = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date) %>% rename(observed_cout =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_cout)*(percent/100))
+loans_count<-
+loans_summary %>% mutate(loan_month = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_date) %>% count(loan_date) %>% rename(observed_cout =n)
+loans_count<-
+loans_summary %>% mutate(loan_month = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_month) %>% count(loan_month) %>% rename(observed_cout =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_cout)*(percent/100))
+loans_count
+View(inference)
+loans_count<-
+loans_summary %>% mutate(loan_month = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_month) %>% count(loan_month) %>% rename(observed_count =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_count)*(percent/100))
+loans_count<-
+loans_summary %>% mutate(loan_month = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_month) %>% count(loan_month) %>% rename(observed_loans =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_loans)*(percent/100))
+loans_count<-
+loans_summary %>% mutate(loan_month = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_month) %>% count(loan_month) %>% rename(observed_loans =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_loans)*(percent/100)) %>% as.factor(loan_date)
+loans_count<-
+loans_summary %>% mutate(loan_month = match(substr(loans_summary$issue_d,1,3),month.abb)) %>% group_by(loan_month) %>% count(loan_month) %>% rename(observed_loans =n)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_loans)*(percent/100)) %>% as.factor(loan_month)
+loans_count$loan_month <-  as.factor(loans_count$loan_month)
+View(loans_count)
+loans_count <- loans_count %>% mutate(percent= 33.333333) %>% mutate(expected_loans=sum(observed_loans)*(percent/100))
+inference(y=loan_month,x=expected_loans,data=loans_count,method = "theoretical")
+inference(y=loans_count$loan_month,x=loans_count$expected_loans,method = "theoretical")
+inference(y=loans_count$observed_loans,x=loans_count$loan_month,method = "theoretical")
+inference(y=loans_count$observed_loans,x=loans_count$loan_month,method = "theoretical",type="ht",null=0)
+inference(y=loans_count$observed_loans,x=loans_count$loan_month,method = "theoretical",type="ht",null=0,estimate=mean)
+inference(y=loans_count$observed_loans,x=loans_count$loan_month,method = "theoretical",type="ht",null=0,est=mean)
+inference(y=loans_count$observed_loans,x=loans_count$loan_month,method = "theoretical",type="ht",null=0,est=mean,alternative = 'greater')
+chisq.test(loans_count$loan_month,p=loans_count$percent/100)
+chisq.test(x=loans_count$loan_month,p=loans_count$percent/100)
+chisq.test(x=loans_count$loan_month,y=loans_count$observed_loans p=loans_count$percent/100)
+chisq.test(x=loans_count$loan_month,y=loans_count$observed_loans, p=loans_count$percent/100)
+(((333.3333-223)^2)/333.3333 )+(((333.3333-302)^2)/333.3333 )+(((333.3333-475)^2)/333.3333 )
+pchisq(99.67401,2)
+pchisq(99.67401,3)
+pchisq(99.67401,2)
+chisq.test(x=loans_count$loan_month,y=loans_count$observed_loans, p=loans_count$percent/100)
+test <- chisq.test(x=loans_count$loan_month,y=loans_count$observed_loans, p=loans_count$percent/100)
+summary(test)
+test$observed
+summary(test)
+test$expected
+summary(test)
+test$expected
+chisq.test(x=loans_count$loan_month,y=loans_count$observed_loans, p=loans_count$percent/100)
+test <-
+chisq.test(x=loans_count$loan_month, p=loans_count$percent/100)
+chisq.test(x=loans_count$loan_month, p=loans_count$percent/100)
+chisq.test(x=loans_count$loan_month,y=loans_count$observed_loans, p=loans_count$percent/100)
+chisq.test(x=loans_count$observed_loans,y=loans_count$loan_month, p=loans_count$percent/100)
+chisq.test(x=loans_count$observed_loans p=loans_count$percent/100)
+chisq.test(x=loans_count$observed_loans, p=loans_count$percent/100)
+test <- chisq.test(x=loans_count$observed_loans, p=loans_count$percent/100)
+summary(test)
+test$expected
+inference(y=loans_count$observed_loans,method = "theoretical",type="ht",null=0,est=mean,alternative = 'greater')
+chisq.test(x=loans_count$observed_loans, p=loans_count$percent/100)
+# DO NOT REMOVE
+# THIS IS FOR SETTING SOME PLOTTING PARAMETERS SO THAT YOUR PLOTS DON'T TAKE UP TOO MUCH SPACE
+# IF YOU WOULD LIKE TO CHANGE THESE, SEE HELP FILES ON THE par() FUNCTION
+# OR ASK FOR HELP
+#install.packages("broom")
+library(broom)
+library(knitr)
+library(dplyr)
+library(knitr)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+load("Dependencies/nc.Rdata")
+## set global chunk options
+opts_chunk$set(fig.path='figure/manual-', cache.path='cache/manual-', fig.align='center', fig.show='hold', par=TRUE)
+## tune details of base graphics (http://yihui.name/knitr/hooks)
+knit_hooks$set(par=function(before, options, envir){
+if (before && options$fig.show!='none') par(mar=c(4,4,.2,.1),cex.lab=.95,cex.axis=.9,mgp=c(2,.7,0),tcl=-.3)
+})
+#normal plot
+normalPlot <- function(mean=0, sd=1, bounds=c(-1,1), tails=FALSE) {
+x <- seq(-4,4,length=100)*sd + mean
+hx <- dnorm(x,mean,sd)
+plot(x, hx, type="n", xlab="x-Axis", ylab="",
+main="Normal Distribution", axes=FALSE)
+lines(x, hx)
+if(tails) {
+i.low <- x <= bounds[1]
+i.high <- x >= bounds[2]
+polygon(c(x[i.low],bounds[1]), c(hx[i.low], 0), col="red")
+polygon(c(bounds[2],x[i.high]), c(0,hx[i.high]), col="red")
+} else {
+i <- x >= bounds[1] & x <= bounds[2]
+polygon(c(bounds[1],x[i],bounds[2]), c(0,hx[i],0), col="red")
+area <- pnorm(bounds[2], mean, sd) - pnorm(bounds[1], mean, sd)
+if(diff(bounds) > 0) {
+result <- paste("P(",bounds[1],"< x <",bounds[2],") =",
+signif(area, digits=3))
+mtext(result,3)
+}
+}
+axis(1)
+}
+# load data of 2016 Q1
+set.seed(7340)
+#Getting the sample size of 1000 from loans stats 2016 Q1 dataset
+loans_sample <- read.csv ("C:/Users/Shyam/Google Drive/CUNY/Assignment_Repositories/606 - Project/LoanStats_securev1_2016Q1.csv",header = TRUE,skip = 1, sep = ",",stringsAsFactors = FALSE,skipNul = TRUE) %>% sample_n(1000,replace = FALSE)
+#loans_sample <- read.csv ("C:/Users/paperspace/Google Drive/CUNY/Assignment_Repositories/606 - Project/LoanStats_securev1_2016Q1.csv",header = TRUE,skip = 1, sep = ",",stringsAsFactors = FALSE,skipNul = TRUE) %>% sample_n(1000,replace = FALSE)
+# 1. Select the required columns
+# 2. Convert the column term to numeric
+# 3. Remove unwanted columns and change the NA data(if any)
+# 4. Calculate the total payment by each customer adding the interest rate
+loans_summary <-
+loans_sample %>% select(c(id,loan_amnt,funded_amnt,term,int_rate,emp_length,home_ownership,annual_inc,verification_status,addr_state,fico_range_low,fico_range_high,issue_d,loan_status,purpose,total_pymnt_inv)) %>%
+mutate(fico_score=(fico_range_low+fico_range_high)/2) %>%
+mutate(term1=as.numeric(str_trim(str_replace(term,"months","")))) %>%
+select(-term,-fico_range_low,-fico_range_high) %>%
+mutate(emp_length=str_replace(emp_length,c("n/a"),"NA")) %>%
+mutate(int_rate=(as.numeric(str_replace(as.character(int_rate),"%",""))))  %>%  mutate(total_pymnt=(funded_amnt+(funded_amnt*int_rate*(term1/12))/100)) %>%
+mutate(verification_status = str_replace(verification_status,"Source Verified","Verified"))
+#Change interest rate to numeric
+loans_summary$int_rate <- as.numeric(loans_summary$int_rate)
+#Changing required columns as factors and numeric
+loans_summary$home_ownership <- as.factor(loans_summary$home_ownership)
+loans_summary$verification_status <- as.factor(loans_summary$verification_status)
+loans_summary$purpose <- as.factor(loans_summary$purpose)
+loans_summary$loan_status <- as.factor(loans_summary$loan_status)
+#As we are concentrated on home ownership, we are replacing OWN to
+summary(loans_summary)
+# Histogram of funded amount
+ggplot(loans_summary,aes(x=funded_amnt)) + geom_histogram()
+#Histogram of funded amount
+ggplot(loans_summary,aes(x=funded_amnt)) + geom_histogram()
+#Histogram of Interest rate %
+ggplot(loans_summary,aes(x=int_rate)) + geom_histogram()
+#fico score vs interest rate
+ggplotly(ggplot(loans_summary,aes(x=fico_score,y=int_rate)) + geom_point(aes(color=purpose),size=1,alpha=0.8) + geom_smooth(method = "lm"))
+#funded amount are equal for different purpose
+ggplot(loans_summary,aes(x=purpose,y=funded_amnt)) + geom_boxplot()
+#Interest rate vs funded amount
+ggplot(loans_summary,aes(x=int_rate,y=funded_amnt)) + geom_point(aes(color=term1))
+# State vs  Interest rate %
+state_interestrate <- loans_summary %>% select(addr_state,int_rate) %>%  group_by(addr_state) %>% summarise(avg =mean(int_rate))
+a1 <- list(autotick = TRUE, title = "State")
+b1 <- list(title = "Interest rate %")
+plot_ly(x = ~state_interestrate$addr_state, y = ~state_interestrate$avg, type = "area") %>% layout(xaxis=a1,yaxis=b1,title="State vs Average interest rate")
+#Home ownership vs FICO scores
+ggplot(loans_summary,aes(x=fico_score)) + geom_histogram() + facet_grid(.~home_ownership)
+#Loan request vs month
+plot_ly(x = ~loans_summary$issue_d)
+#remove(loans_sample,loans_summary,loandatamean,loandatasd,a1,p2,p3,p4,p5,a1,b1,g,h)
+#Point estimate for the population funded amount
+p = mean(loans_summary$funded_amnt)
+n=1000
+se = (sd(loans_summary$funded_amnt))/sqrt(1000)
+# 95% confidence interval
+me = 1.96*se
+# Confidence interval of funded amount
+normalPlot(p,se,bounds=c(p-me,p+me))
+#fico score vs interest rate
+ggplotly(ggplot(loans_summary,aes(x=fico_score,y=int_rate)) + geom_point(aes(color=purpose),size=1,alpha=0.8) + geom_smooth(method = "lm"))
+cor(loans_summary$fico_score,loans_summary$int_rate)
+loans_lm <- lm(int_rate ~ fico_score,loans_summary)
+summary(loans_lm)
+df_residuals <- augment(loans_lm)
+residuals <- loans_lm$residuals
+#Historgram plot of residuals
+ggplot(df_residuals,aes(df_residuals$.resid)) + geom_histogram()
+#QQ norm plot of the residuals
+qqnorm(loans_lm$residuals)
+qqline(loans_lm$residuals)
+ggplot(df_residuals,aes(x=fico_score,y=.resid)) + geom_point(size=1,alpha=0.8) + geom_smooth(method = "lm")  + ggtitle("FICO SCORE vs Residuals")
+prob_fico_lm <- data.frame()
+for(i in loans_summary$fico_score)
+{
+p1=exp( 53.106537-0.058618 * i)
+p=p1/(1+p1)
+prob_fico_lm <- rbind(prob_fico_lm,c(p,i))
+}
+prob_fico_lm<- rename(prob_fico_lm,fico_score = X682,probability = X0.999998013354434)
+ggplot(prob_fico_lm,aes(x=fico_score,y=probability)) + geom_point() +geom_smooth(method="loess")
+#ggplot(prob_fico_lm,aes(x=X0.999998013354434,y=X682)) + geom_point()
+#
+loans_glm <-
+glm(int_rate ~ fico_score,data=loans_summary,family = "binomial")
+nrow(loans_summary)
+View(state_interestrate)
+View(loans_summary)
