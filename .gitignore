@@ -1,3 +1,45 @@
+# Data Ignore
+
+./602 - Python/Assignment 10 - Visualization/data/*
+./602 - Python/Assignment 11 - Monte Carlo simulation/data/*
+./602 - Python/Assignment 12 - Parallel Computing/data/*
+./602 - Python/Assignment 3 - Error Handelling and Regular/data/*
+./602 - Python/Assignment 5 - Datamining/data/*
+./602 - Python/Assignment 6 - Numpy/data/*
+./602 - Python/Assignment 7 - Scipy/data/*
+./602 - Python/Assignment 8 - Image Processing/practice/lessons/data/*
+./602 - Python/Assignment 9 - pandas/data/*
+./602 - Python/Final_project_housing/data/*
+./605 - Computational Mathematics/Final Project/data/*
+./605 - Computational Mathematics/Week 12 - Bias Variance - Tradeoff/data/*
+./605 - Computational Mathematics/Week 5 - Least Squares/data/*
+./605 - Computational Mathematics/Week 6 - Random Variables/data/*
+./606 - Statistics/Project/data/*
+./607 - R Programming/Week 4 - Data Analysis/data/*
+./608 - Visual Analytics/Final Project/car_zacts_project/d3_cars_classification/data/*
+./608 - Visual Analytics/Homework 5 - Javascript/lecture5/js_examples/Hello World/data/*
+./620 - Web Analytics/Assignment3_Graph_Theory/data/*
+./620 - Web Analytics/Assignment4_Centrality/data/*
+./620 - Web Analytics/Assignment9_model_selection/data/*
+./643 - Recommendation System/Final Project/data/*
+./643 - Recommendation System/Unit 1 - Overview RS/data/*
+./643 - Recommendation System/Unit 2 - CB and CF Filtering/data/*
+./643 - Recommendation System/Unit 4- Accuracy/data/*
+
+./607 - R Programming/Project 1 - Chess tournament/Data/*
+./607 - R Programming/Project 2 -Tidy files/Data/*
+./607 - R Programming/Project 3 - Crime Analysis/Data/*
+./607 - R Programming/Week 10 - Text mining/Data/*
+./607 - R Programming/Week 2 - R and SQL/SQL import data/Data/*
+./607 - R Programming/Week 5 - Tidy data/Data/*
+./607 - R Programming/Week 7 - Web Tech/Data/*
+
+
+
+
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -99,3 +141,12 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+
+# R files
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
