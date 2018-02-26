@@ -1,0 +1,527 @@
+---
+title: "621_HW1.Rmd"
+author: "Shyam BV"
+date: "February 24, 2018"
+output:
+  pdf_document: 
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    highlight: tango
+  html_document:
+    fontsize: 35pt
+    highlight: pygments
+    theme: cerulean
+    toc: yes
+---
+
+
+********
+
+
+\newpage 
+
+# **Multiple Linear Regression Model : Predicting The Number Of Wins For The Baseball Team**
+
+********
+
+
+Deliverables:
+
+1. A write-up submitted in PDF format. Your write-up should have four sections. Each one is described below. You may assume you are addressing me as a fellow data scientist, so do not need to shy away from technical details.
+2. Assigned predictions (the number of wins for the team) for the evaluation data set.
+3. Include your R statistical programming code in an Appendix.
+
+
+```{r warning=FALSE, comment=FALSE, message=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=200)}
+
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(corrplot)
+library(imputeR)
+library(MASS)
+library(pls)
+library(faraway)
+library(VIM)
+```
+
+
+## Data Exploration
+
+Describe the size and the variables in the moneyball training data set. Consider that too much detail will cause a manager to lose interest while too little detail will make the manager consider that you aren’t doing your job. Some suggestions are given below. Please do NOT treat this as a check list of things to do to complete the assignment. You should have your own thoughts on what to tell the boss. These are just ideas.
+
+a. Mean / Standard Deviation / Median
+b. Bar Chart or Box Plot of the data and/or Histograms
+c. Is the data correlated to the target variable (or to other variables?)
+d. Are any of the variables missing and need to be imputed "fixed"?
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+df <- read.csv('./data/moneyball-training-data.csv')
+
+```
+
+
+Dataset contains of 2276 observations,15 predictor variables and 1 dependent variable(`TARGET_WINS`). All the predictor variables are out input for a multipe linear regression model. Below is the summary of the dataset. That will provide all the basic summary stastistic.
+
+```{r include=FALSE,  echo=FALSE, warning=FALSE, message=FALSE}
+count(df)
+summary(df)
+head(df)
+
+```
+
+```{r include=TRUE, echo=FALSE,  warning=FALSE, message=FALSE}
+
+summary(df)
+
+```
+
+
+From the above summary, we can see that there are predictor variables some which has `NA` and `INDEX` column is not required as it is just an index of rows. Other predictor variable will be part of our analysis. Below is the distribution of the our dependent variable and all our variables in boxplot.
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+#Remove INDEX column
+df <- df[,c(2:17)]
+
+boxplot(df$TARGET_WINS)
+
+
+```
+
+
+
+```{r include=TRUE, echo=FALSE,   warning=FALSE, message=FALSE}
+hist(df$TARGET_WINS)
+
+boxplot(df,names = names(df))
+```
+
+Above plot shows that there are some predictors which has many outliers. Transformation of predictor variables will play a major role in this analysis. Before we perform any transformation, we need to check for multi-collinerity. Below picture shows the correlation between different variables.
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+#Target Wins
+ggplot(df,aes(x = TARGET_WINS)) +
+geom_density(alpha = .3) + ggtitle("Histogram of TARGET_WINS")
+
+
+#TEAM Batting
+ggplot(df,aes(x = TEAM_BATTING_H)) +
+geom_density(alpha = .3)
+```
+
+
+
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+
+#With missing values
+M <- cor(df)
+corrplot(M,method='number')
+
+#print(M)
+#Without missing values
+#M <- cor(df,use='na.or.complete')
+#corrplot(M,method='number')
+```
+
+It seems some of the predictor variables are highly correlated. These correlation will cause problems in our linear model. This needs to be taken care by various methods. Below shown is the list of exploratory variables which has missing values.
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+
+data.frame(NA_count = sapply(df, function(x) sum(is.na(x)))) 
+
+```
+
+Above mentioned is the general data exploration on the moneyball dataset. Lets deep dive into data preparation part and analyze further.
+
+
+## Data Preparation
+
+Data preparation is an important step of this analysis. As some of the variables got `NA's`, those needs to be corrected and perform some sort of transformations for the predictors which has many outliers.
+
+### Fix missing values
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+summary(df)
+
+
+hist(df$TEAM_BATTING_SO)
+hist(df$TEAM_BASERUN_SB)
+hist(df$TEAM_BASERUN_CS)
+hist(df$TEAM_BATTING_HBP)
+hist(df$TEAM_PITCHING_SO)
+hist(df$TEAM_FIELDING_DP)
+
+```
+
+#### Step 1: Drop Predictors
+
+1. As 95% of the values in `TEAM_BATTING_HBP` predictor is `NA's`, so we will remove that column. 
+
+2. `TEAM_BATTING_SB` and `TEAM_BASERUN_CS` have a strong correlation of 65.5%. `TEAM_BASERUN_CS` has around 34% of `NA's`. So we have decided to remove `TEAM_BASERUN_CS` in our analysis.
+
+#### Step 2: Imputation
+
+For other predictors which has `NA`, we have different options to perform imputation. Either we can go with `mean` or `median` or `linear model` imputation. In our case most of the predictor's have approximatly same `mean` and `median`.  We have tried `lm` imputation, but it does not predict correctly due to the outliers. 
+
+So we have used `kNN` imputation for other missing values in specific predictors. It takes the similar records like it and uses the value for missing observations in TEAM_FIELDING_DP, TEAM_BATTING_SO, TEAM_BASERUN_SB, TEAM_PITCHING_SO. We will perform mean imputation for other mising values. 
+
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+impute_df <- within(df ,rm(TEAM_BATTING_HBP,TEAM_BASERUN_CS))
+
+df_bkp_before_impute = df_bkp_before_impute = impute_df
+
+
+#Did not produce correct output
+model_impute <- lm(TEAM_BATTING_SO ~., impute_df)
+summary(impute_df)
+
+```
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+impute_df$TEAM_FIELDING_DP=  kNN(impute_df,variable='TEAM_FIELDING_DP',k=3)$TEAM_FIELDING_DP
+impute_df$TEAM_BATTING_SO= 
+kNN(impute_df,variable='TEAM_BATTING_SO',k=3)$TEAM_BATTING_SO
+impute_df$TEAM_BASERUN_SB= 
+kNN(impute_df,variable='TEAM_BASERUN_SB',k=3)$TEAM_BASERUN_SB
+impute_df$TEAM_PITCHING_SO= 
+kNN(impute_df,variable='TEAM_PITCHING_SO',k=3)$TEAM_PITCHING_SO
+
+```
+
+
+### Step 3: Transformations and outliers
+
+However, some fields have outlier values. Those variables can be transformed, here we will use `log` transformations on `TEAM_BATTING_H`, `TEAM_FIELDING_E`and  `TEAM_PITCHING_SO`. As there are 0 values, we will add a small fraction to avoid `INF`.
+
+As our knowledge on the dataset is limited, we will not remove the outliers. We will use `cook's` distance to remove the outliers in the each model which we build.
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+#df <- within(df ,rm(TEAM_BATTING_HBP))
+
+
+df = impute_df
+
+
+#Perform mean imputation for any other 
+df = data.frame(guess(df,type='mean'))
+
+#Total NA values
+
+sum(is.na(df))
+
+```
+
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+df$TEAM_BATTING_H <- log(df$TEAM_BATTING_H + 0.00000001)
+df$TEAM_FIELDING_E <- log(df$TEAM_FIELDING_E + 0.00000001) 
+df$TEAM_PITCHING_SO <- log(df$TEAM_PITCHING_SO + 0.00000001)
+
+```
+
+After all the transformations, we have a clean dataset which does not have any missing values.
+
+
+## Build Models
+
+### Model 1 - Basic backward elimination
+
+As a first model, we will build a basic model with all the predictors and perform a backward elimination.
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+analysis <- function(model){
+  print(summary(model))
+  print(vif(model))
+  plot(model)
+  plot(model,which = c(4))
+}
+
+summary_vif_analysis <- function(model){
+  print(summary(model))
+  print(vif(model))
+
+}
+
+
+model_11_base_log = lm(TARGET_WINS ~ .,data = df)
+
+
+```
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+analysis(model_11_base_log)
+```
+
+
+There are some outliers in the dataset, removing them using `cooks's` distance imporves the model and produces an output around `0.37`. 
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+outliers_remove <- function(x){
+  rownames(x) <- NULL 
+  
+  test_model = lm(TARGET_WINS ~ .,data = x)
+
+  outliers <- cooks.distance(test_model)
+  plot(test_model,which = c(4))
+  
+  print(as.numeric(row.names(data.frame(c(tail(sort(outliers),3))))))
+  print(x[as.numeric(row.names(data.frame(c(tail(sort(outliers),3))))),])
+  x <- x[-as.numeric(row.names(data.frame(c(tail(sort(outliers),3))))),]
+  return(x)
+} 
+
+
+df_mean_out_removed <- outliers_remove(df)
+
+model_12_mean_out_removed <- lm(TARGET_WINS ~ .,data = df_mean_out_removed)
+
+```
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+summary_vif_analysis(model_12_mean_out_removed)
+```
+
+
+Still the VIF of some predictors as high  and some predictors with high p-values. 
+
+After multiple stepwise removal, we finally got below model that has all predictor variables which are statistically significant and VIF are less than 5.
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+model_13_mean_out_removed <- lm(TARGET_WINS ~ .-TEAM_PITCHING_BB-TEAM_PITCHING_HR,data = df_mean_out_removed)
+
+model_13_mean_out_removed <-update(model_13_mean_out_removed, .~.-TEAM_PITCHING_H)
+
+```
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+analysis(model_13_mean_out_removed)
+```
+
+
+Our final model seems to satisfy all the conditions of regression model and has low VIF. However, the adjusted R2 value is around `0.37`, which is quite low. So we will try a different model.
+
+
+### Model 2 - Principle component Regression
+
+Lets take a different approach by creating a principle component regression which zeros-out the multicollinearity. This model uses PCA, which uses the highest variance as principle component.
+
+As our dataset suffers from multi-collinerity, if we try to perform principle component Regression, it will reduce collinearity and produces better output.
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+model_21_pcr = pcr(TARGET_WINS ~ .,data = df)
+
+summary(model_21_pcr)
+
+coef(model_21_pcr,intercept = TRUE)
+
+#Calculate R2 with each components.
+
+```
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+
+R2(model_21_pcr)
+```
+
+It seems after adding all the principle components, the R2 is still low. So in the next model, we will try a different approach.
+
+
+### Model 3 - Drop NA  
+
+It seems from last two models, any changes is not improving the model. So lets focus on the `NA` data and see if we can improve the model.
+
+Tried all the `NA` values in different predictors and below strategy for other values.
+1. `mean` imputation did not improve much.
+2. `median` imputation did not improve much.
+3. `kNN` imputation did not improve much.
+
+So in this model, we will drop all the `NA` rows and develop in this model.
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+# All mentioned columns are having `NA`.
+
+df_na_removed <- df_bkp_before_impute[-c(as.numeric(rownames(df_bkp_before_impute[is.na(df_bkp_before_impute$TEAM_BATTING_SO) &
+is.na(df_bkp_before_impute$TEAM_PITCHING_SO),]))),] %>% guess(type='mean') %>% data.frame()
+#mutate_all(funs(replace(.,is.na(.),0)))
+
+#df_na_removed$TEAM_BATTING_H <- log(df_na_removed$TEAM_BATTING_H + 0.00000001)
+#df_na_removed$TEAM_FIELDING_E <- log(df_na_removed$TEAM_FIELDING_E + 0.00000001) 
+#df_na_removed$TEAM_PITCHING_SO <- log(df_na_removed$TEAM_PITCHING_SO + 0.00000001)
+
+
+model_31_na_removed = lm(TARGET_WINS ~ .,data = df)
+
+summary_vif_analysis(model_31_na_removed)
+
+```
+
+
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+# Drop `NA` and verify
+
+df_na_out_removed <- df_bkp_before_impute %>% na.omit() 
+
+rownames(df_na_out_removed) <- NULL 
+
+
+#df_na_removed$TEAM_BATTING_H <- log(df_na_removed$TEAM_BATTING_H + 0.00000001)
+#df_na_removed$TEAM_FIELDING_E <- log(df_na_removed$TEAM_FIELDING_E + 0.00000001) 
+#df_na_removed$TEAM_PITCHING_SO <- log(df_na_removed$TEAM_PITCHING_SO + 0.00000001)
+
+model_32_na_out_removed <- lm(TARGET_WINS ~ .,data = df_na_out_removed)
+
+summary_vif_analysis(model_32_na_out_removed)
+
+
+# Remove statsistically insignificant variables
+
+model_33_na_out_removed <- update(model_32_na_out_removed, TARGET_WINS ~ .-TEAM_PITCHING_HR-TEAM_PITCHING_BB-TEAM_PITCHING_SO,data = df_na_out_removed)
+
+analysis(model_33_na_out_removed)
+
+anova(model_33_na_out_removed)
+```
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+analysis(model_33_na_out_removed)
+
+anova(model_33_na_out_removed)
+```
+
+
+Finally this model shows some level of improvements. It provides an adjusted R2 value of ~`0.39`. Most the predictors are statistically significant and has less VIF.
+
+
+### Model 4 - Scale and Transformations
+
+In the previous model, we have not scaled the data. In this model, we will to  scale the predictors and remove the outliers.
+
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+df_na_out_scale <- data.frame(TARGET_WINS = df_na_out_removed[,c(1)], scale(df_na_out_removed[,c(2:14)]))
+
+df_na_out_scale <- outliers_remove(df_na_out_scale)
+
+#df_na_out_scale <- outliers_remove(df_na_out_scale)
+
+model_41_na_out_scale <- lm(TARGET_WINS ~ .,data = df_na_out_scale)
+
+analysis(model_41_na_out_scale)
+
+```
+
+It seems scaling the predictor variables did not improve the model much. But removing 6 outliers has improved the model to ~`0.436`. However, it increased the VIF of predictor variables.
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+model_42_na_out_scale_remove <- lm(TARGET_WINS ~ .-TEAM_PITCHING_HR-TEAM_BATTING_BB-TEAM_PITCHING_H-TEAM_BATTING_SO,data = df_na_out_scale)
+
+```
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+
+analysis(model_42_na_out_scale_remove)
+
+anova(model_42_na_out_scale_remove)
+```
+
+
+By removing the statistically insignificant predictors we get an adjusted R2 value of ~`0.397`.
+
+
+#### Explanation of the variables
+
+Practically, `TEAM_BATTING_2B`, `TEAM_PITCHING_SO`, `TEAM_FIELDING_E`, `TEAM_FIELDING_DP` decreases the effect of winning. Other variables increases the chances of winning.
+
+However, the model approximatly explains `TARGET_WINS` around 40% of the time with provided predictor variables.
+
+## Select Models
+
+In the final calculation of RMSE and adjusted R2 for all the models. With that information, all models are almost comparable with each other. If we want to select a model which makes sense, then it will be model 1.
+
+Model 1 is selected because, it did not reject or omit `NA` observations. If we get more details about the data and have business knowledge, then we can correct the NA values and make a better model. Model 4 rejects the `NA` data. Often it is costlier to gather the data and reject it. 
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+evaluate = function(model) {
+  print(paste("RMSE:",sqrt(mean(model$residuals^2))))
+  print(summary(model))
+}
+
+evaluate(model_13_mean_out_removed) # F-Statistic 101.7
+evaluate(model_21_pcr)
+evaluate(model_33_na_out_removed) # F-Statistic  104.2
+evaluate(model_42_na_out_scale_remove) #  F-Statistic 115.2
+
+
+plot(model_13_mean_out_removed$residuals)
+
+
+#model_13_mean_out_removed
+#model_21_base
+#model_33_na_out_removed
+#model_42_na_out_scale_remove
+
+```
+
+
+### Predictions
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+df_test <- read.csv('./data/moneyball-evaluation-data.csv')
+
+df_test <- within(df_test ,rm(INDEX, TEAM_BATTING_HBP))
+df_test = data.frame(guess(df_test,type='mean'))
+df_test$TEAM_BATTING_H <- log(df_test$TEAM_BATTING_H + 0.00000001)
+df_test$TEAM_FIELDING_E <- log(df_test$TEAM_FIELDING_E + 0.00000001) 
+df_test$TEAM_PITCHING_SO <- log(df_test$TEAM_PITCHING_SO + 0.00000001)
+
+
+pred_wins <- round(predict.lm(model_13_mean_out_removed,df_test))
+
+```
+
+
+
+| Metric    | Model1  | Model2 | Model3 | Model4  
+| --------- | ------------- | ----------- | ------- | -------------  
+| RSE       | 12.43       | 14.16       | 10.20   | 10.19     
+| R^2       | 0.3727       | 0.3653      | 0.3987  | 0.399    
+| Adj. R^2  | 0.37       | 0.3653      | 0.3954  | 0.397    
+| F Stat.   | 134.4         | -       | 120.9   | 134.9   
+
+
+
+```{r include=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+hist(pred_wins,xlab='')
+
+print("Mean predicted wins:")
+mean(pred_wins)
+
+```
+
+
+## Summary
+
+We have perfomed different transformations and created multiple models. Almost all the models are comparable. But we have choosen the best model and compared it with other models. Given the knowledge of the baseball game is limited, we were not able to add many new variables and perform imputation which is relevent. For now, I belive the model can be used to predict the wins for unseen data.
