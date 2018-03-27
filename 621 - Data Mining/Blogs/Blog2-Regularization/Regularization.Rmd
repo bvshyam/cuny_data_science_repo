@@ -1,0 +1,249 @@
+---
+title: "Lasso & Ridge Regression"
+author: "Shyam BV"
+date: "March 15, 2018"
+output: html_document
+---
+
+
+## Introduction
+
+Linear Regression is one of the most powerful algorithm to model the data. It is one of the most interpretable method compared to other algorithms. It can take different forms depending on the type of dataset.
+
+In real-world, dataset may have multi-collinerity, long dataset with various predictors and perform shrinkage mechnaisum to simplify the dataset and model. In this article, we are going to take a sample dataset and apply L1/L2 regularization on it and understand the output of the dataset.
+
+```{r include=FALSE, echo=FALSE,   warning=FALSE, message=FALSE}
+library(glmnet)
+library(dummies)
+```
+
+
+## Dataset
+
+Dataset which we are going to use in Big mart sales dataset[https://datahack.analyticsvidhya.com/contest/practice-problem-big-mart-sales-iii/]. It has different columns, below is the snapshot of the dataset.
+
+
+```{r}
+
+
+df_original = read.csv('./data/Train_UWu5bXk.csv',skipNul = TRUE,na.strings = c(' ','','NA',NA))
+
+df_original = na.omit(df_original)
+
+df = df_original[sample(nrow(df_original),1000),]
+
+df_test = df_original[sample(nrow(df_original),1000),]
+
+```
+
+```{r}
+head(df)
+```
+
+There are a total of 11 predictors and one dependent variables `sales` which need to predict. It also contains categorical variables. For the sake of simplicity, we will omit categorical variables and use quantative variables.
+
+
+## Simple models
+
+
+Lets start with a simple model using few quantitative predictors(fat content, visiblity, type, Item_MRP)
+
+
+## Multiple Linear Regression
+
+Lets try a simple linear regression which `Item_MRP` as a predictor variable of `Item_Outlet_Sales`
+
+```{r}
+
+multiple_model = lm(Item_Outlet_Sales ~ Outlet_Establishment_Year +Item_MRP+Item_Weight ,df)
+
+summary(multiple_model)
+```
+Above mentioned simple model provides an adjusted R-squared of `0.48`. 48% of variability in the dependent variable is explained by the model. Now we will evaluate other metrics.
+
+
+```{r}
+evaluation <- function(df,model){
+  pred = predict(model,df)
+  mse = round(mean((df['Item_Outlet_Sales']-pred)^2),2)
+  rmse = round(sqrt(mean((df['Item_Outlet_Sales']-pred)^2)),2)
+  
+  print(paste0("MSE: ",mse))
+  print(paste0("RMSE: ",rmse))  
+}
+
+#Training Error
+evaluation(df,multiple_model)
+
+#Testing Error
+evaluation(df_test,multiple_model)
+
+```
+
+## Polynomial Linear Regression
+
+As multiple linear regression improved the performance a bit, it did not drastically improve the performance. So we need to try polynomial regression for better results.
+
+
+```{r}
+
+polynomial_model = lm(Item_Outlet_Sales ~ poly(Outlet_Establishment_Year,4) +poly(Item_MRP,6)+poly(Item_Weight,3) ,df)
+
+summary(polynomial_model)
+```
+
+As I add more and more polynmoials to the predictors, it starts overfitting. Lets deviate a bit with different dataset to explain this and bias-variance tradeoff.
+
+
+
+```{r}
+# Altering the data a bit
+df_changed = df[!(df['Item_MRP'] >150 & df['Item_Outlet_Sales'] < 2000),]
+
+fit_1 = lm(Item_Outlet_Sales ~ 1, data = df_changed)
+fit_2 = lm(Item_Outlet_Sales ~ Item_MRP, data = df_changed)
+fit_3 = lm(Item_Outlet_Sales ~ poly(Item_MRP, degree = 5), data = df_changed)
+fit_4 = lm(Item_Outlet_Sales ~ poly(Item_MRP, degree = 10), data = df_changed)
+fit_5 = lm(Item_Outlet_Sales ~ poly(Item_MRP, degree = 15), data = df_changed)
+fit_6 = lm(Item_Outlet_Sales ~ poly(Item_MRP, degree = 20), data = df_changed)
+fit_7 = lm(Item_Outlet_Sales ~ poly(Item_MRP, degree = 22), data = df_changed)
+
+plot(Item_Outlet_Sales ~ Item_MRP, df_changed)
+grid = seq(from = min(df_changed$Item_MRP), to = max(df_changed$Item_MRP), by = 1)
+lines(grid, predict(fit_1, newdata = data.frame(Item_MRP = grid)), 
+      col = "red", lwd = 2, lty = 2)
+
+lines(grid, predict(fit_2, newdata = data.frame(Item_MRP = grid)), 
+      col = "blue", lwd = 2, lty = 3)
+lines(grid, predict(fit_3, newdata = data.frame(Item_MRP = grid)), 
+      col = "green", lwd = 2, lty = 4)
+lines(grid, predict(fit_4, newdata = data.frame(Item_MRP = grid)), 
+      col = "orange", lwd = 2, lty = 5)
+lines(grid, predict(fit_5, newdata = data.frame(Item_MRP = grid)), 
+      col = "green", lwd = 2, lty = 4)
+lines(grid, predict(fit_6, newdata = data.frame(Item_MRP = grid)), 
+      col = "orange", lwd = 2, lty = 5)
+lines(grid, predict(fit_7, newdata = data.frame(Item_MRP = grid)), 
+      col = "red", lwd = 2, lty = 5)
+
+```
+
+```{r}
+#Fit 2
+evaluation(df_changed,fit_2)
+#fit 4
+evaluation(df_changed,fit_4)
+#Fit 6
+evaluation(df_changed,fit_6)
+#Fit7
+evaluation(df_changed,fit_7)
+```
+
+
+From the above plot, when the poloynomials are increased, the model tries to overfit the data. 
+
+As we add more and more parameters to our model, its complexity increases, which results in increasing variance and decreasing bias, i.e., overfitting. So we need to find out one optimum point in our model where the decrease in bias is equal to increase in variance. In practice, there is no analytical way to find this point. 
+
+To overcome underfitting or high bias, we can basically add new parameters to our model so that the model complexity increases, and thus reducing high bias.
+
+To overcome overfitting or high variance, we will use Regularization technique. There are two types of regularization.
+
+Before that lets convert the categorical variables to dummy variables.
+
+```{r}
+df_dummies = dummy.data.frame(df[,c("Item_Weight",   
+"Item_Fat_Content","Item_Visibility", 
+"Item_Type","Item_MRP",      
+"Outlet_Identifier","Outlet_Establishment_Year",
+"Outlet_Size",    "Outlet_Location_Type",
+"Outlet_Type",    "Item_Outlet_Sales")])
+
+#head(df_dummies)
+```
+
+
+```{r}
+overall_fit = lm(Item_Outlet_Sales ~ ., data = df_dummies)
+
+summary(overall_fit)
+
+# Model coefficients
+barplot(coefficients((overall_fit)))
+
+
+```
+
+
+### L2 Regularization(Ridge Regression)
+
+Ridge Regression will add penalty equivalent to square of its magnitude. 
+
+$min((||Y-X(\theta))^2 + \lambda||\theta||^2)$
+
+From the below plot for a lambda value of `10`, it clearly reduces the coefficients weights. However, it does not bring down to zero. Here the coefficients are calculated using below math notation.
+
+
+$\beta = (X^TX+\lambda I)^-1\space X^Ty$
+
+```{r}
+
+
+
+ridge_model = glmnet(x=as.matrix(subset(df_dummies, select =-c(Item_Outlet_Sales)))
+ , y=df_dummies[,c('Item_Outlet_Sales')], alpha = 0,lambda=10)
+
+barplot(ridge_model$beta[,1])
+
+
+```
+
+### L1 Regularization (Lasso regression)
+
+
+Lasso Regression will add penalty equivalent to absolute of its magnitude. 
+
+$min((||Y-X(\theta))^2 + \lambda||\theta||)$
+
+In the below blot, it clearly brings down the coefficients to zero. 
+
+```{r}
+
+lasso_model = glmnet(x=as.matrix(subset(df_dummies, select =-c(Item_Outlet_Sales)))
+ , y=df_dummies[,c('Item_Outlet_Sales')], alpha = 1,lambda=10)
+
+barplot(lasso_model$beta[,1])
+
+
+```
+
+## Summary
+
+L1 Regularization:
+
+1. Adds the penalty to the absolute value of its magnitude
+2. In case of multicollinearity, it will bring the weights of one of the variable to zero.
+3. Can be used if there are many predictor variables to bring down the coefficients.
+4. Computationally less compared to L2.
+ 
+
+L2 Regularization:
+
+1. Adds the penalty to the square of its magnitude
+2. In case of multicollinearity between variables, it will balance out the weights of predictor variables. L1 is better for multicollinearity.
+3. Can be used if there are predictor variables are less compared to L1/
+4. Computationally high compared to L2.
+
+Both are used to avoid overfitting.
+
+
+
+
+
+
+
+
+
+
+
+
+

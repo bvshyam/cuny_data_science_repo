@@ -1,0 +1,188 @@
+---
+title: "Methods to find Linear Reg Coeff"
+author: "Shyam BV"
+date: "March 15, 2018"
+output: html_document
+---
+
+
+## Introduction
+
+Regression is one of the most powerful algorithm to model the data. It is one of the most interpretable method compared to other algorithms. It can take different forms depending on the type of dataset.
+
+In theory we often use OLS to find out the coefficients. But in real-life, it is quite complex if we have a very big dataset with various predictors. In this blog, we are going to see about Gradient decent algorithm for linear and logistic regression using MLE.
+
+## Dataset
+
+Dataset which we are going to use in Big mart sales dataset[https://datahack.analyticsvidhya.com/contest/practice-problem-big-mart-sales-iii/]. It has different columns, below is the snapshot of the dataset.
+
+For simplicity, we will drop the `NA's` and sample `1000` rows.
+```{r}
+
+df_original = read.csv('./data/Train_UWu5bXk.csv',skipNul = TRUE,na.strings = c(' ','','NA',NA))
+
+df_original = na.omit(df_original)
+
+df = df_original[sample(nrow(df_original),1000),]
+
+head(df)
+
+```
+
+
+There are a total of 11 predictors and one dependent variables `sales` which need to predict. It also contains categorical variables. For the sake of simplicity, we will omit categorical variables and use one quantative variable with dependent variable.
+
+
+## Simple models
+
+Lets start with a simple model using quantitative predictors(Item_MRP)
+
+### Model1 - Null Model
+
+Below is the null model, if we do not predict any thing and not use any model. This is just an average of the sales.
+
+Defining function for MSE:
+
+
+```{r}
+mse = function(y,y_hat){
+  
+y = c(y)
+y_hat=c(y_hat)
+
+return(mean((y-y_hat)^2))
+}
+
+
+```
+
+```{r}
+mse(df$Item_Outlet_Sales,mean(df$Item_Outlet_Sales))
+```
+
+That is too much of error if we just use null model and an average of it.
+
+
+## Model2 - Simple Linear Regression function
+
+Lets try a simple linear regression which `Item_MRP` as a predictor variable of `Item_Outlet_Sales`
+
+```{r}
+
+simple_model = lm(Item_Outlet_Sales ~  Item_MRP,df)
+
+summary(simple_model)
+```
+
+```{r}
+#plot(simple_model$coefficients*df$Item_MRP,df$Item_Outlet_Sales)
+
+# For simplicity, plot only 100 points
+plot(Item_Outlet_Sales ~ Item_MRP, df[seq(100),])
+
+abline(simple_model)
+
+summary(simple_model)
+```
+
+This is going to be our model using R build-in functions. Now we will use other methods to calculate the coefficients(beta_hat) 
+
+
+## Model3 - Manual Slope and Intercept
+
+Coefficents can be calculated using different summary statistics.
+
+$$slope(m) = cor(x,y) * (sd(y)/sd(x)) \\
+intercept(b) = \bar{y} - (slope * \bar{x} )$$
+
+```{r}
+x = as.matrix(df$Item_MRP)
+y = as.matrix(df$Item_Outlet_Sales)
+
+slope <- cor(x, y) * (sd(y) / sd(x))
+intercept <- mean(y) - (slope * mean(x))
+
+print(paste0("Slope: ",round(slope,2)))
+print(paste0("Intercept: ",round(intercept,2)))
+
+```
+This method is easy when we have one or two predictor variables. But gets hard if there are many predictors.
+
+## Model 4 - Ordinary Least Squares(OLS)
+
+This is one of the famous method for calculating the parameters of linear regression. Mathematically, it is reducing the errors.
+
+$\hat{\beta} =(X'X)^-1 \space X'Y$
+
+
+```{r}
+x = as.matrix(cbind (1, df$Item_MRP))
+y = as.matrix(df$Item_Outlet_Sales)
+
+
+ 
+## Choose beta-hat to minimize the sum of squared residuals
+## resulting in matrix of estimated coefficients:
+bh = round(solve(t(x)%*%x)%*%t(x)%*%y, digits=2)
+ 
+## Label and organize results into a data frame
+beta.hat = as.data.frame(cbind(c("Intercept","Beta"),bh))
+names(beta.hat) = c("Coeff.","Est")
+beta.hat
+
+
+
+
+```
+This is most commonly used method when we have less number of predictors. When having multiple predictors with a high number of data points, this method is too expensive. That is when we look for cost optimazation using gradient decent algorithm.
+
+## Model5 - Gradient Decent using Optim
+
+This is one of the most used method in many machine learning problems. It is robust to multiple predictors and many observations. It simply uses graident algorithm to find the coefficients. Below is the mathematical form of gradient decent.
+
+$J(\theta) = \frac{1}{2m}\sum(h_\theta (x^i) - y^i)^2$
+
+Below equation is repeated until it converges.
+
+$J(\theta) =  \theta - \alpha \frac{1}{2m}\sum(h_\theta (x^i) - y^i)^2$
+
+Vector form of gradient decent
+
+$\frac{1}{2m}\sum((X.\theta - Y)^2)$
+
+
+Here we create a function to reduce the least squares using `optim` function. Beta is initially assigned as 0.
+
+```{r}
+fnRSS = function(vBeta, vY, mX) {
+  return(sum((vY - mX %*% vBeta)^2))
+}
+
+mX = as.matrix(df$Item_MRP)
+mX <- cbind(1, matrix(mX))
+vY = as.matrix(df$Item_Outlet_Sales)
+
+vBeta0 = rep(0, ncol(mX))
+
+optimLinReg = optim(vBeta0, fnRSS,
+                    mX = mX, vY = vY, method = 'BFGS', 
+                    hessian=TRUE)
+
+print(optimLinReg$par)
+
+
+```
+
+So we have tried different methods to find out the coefficents of a linear regression models. 
+
+
+
+
+
+
+
+
+
+
+
+

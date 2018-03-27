@@ -1,0 +1,106 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(keras)
+library(dplyr)
+```
+
+
+```{r}
+x <- 1:10
+xs = scale(x)
+
+x.orig = t(apply(xs, 1, function(r)r*attr(xs,'scaled:scale') + attr(xs, 'scaled:center')))
+x.orig
+
+
+normalize(x)
+```
+
+
+
+
+
+
+
+```{r}
+
+df = dataset_boston_housing()
+
+#train = data.frame(df$train$x,medv = df$train$y)
+
+#train_scale = scale(train)
+
+train_x = normalize(df$train$x)
+train_y = t(normalize(df$train$y))
+test_x = normalize(df$test$x)
+test_y = t(normalize(df$test$y))
+
+
+
+```
+
+```{r}
+model <- keras_model_sequential() 
+
+model %>% layer_dense(units = 8, activation = 'relu', input_shape = c(13)) %>% 
+  layer_dense(units = 64, activation = "relu") %>%
+  layer_dense(units = 1)
+
+
+    
+
+```
+
+
+```{r}
+summary(model)
+```
+
+
+```{r}
+model %>% compile(loss='mse',optimizer='rmsprop',metrics='mae')
+```
+
+```{r}
+history = model %>% fit(train_x,train_y, epochs=100,batch_size = 8,validation_split = 0.2)
+```
+
+
+```{r}
+plot(history)
+
+```
+
+```{r}
+evaluate(model, test_x, test_y)
+```
+
+```{r}
+preds <- predict(model, test_x)
+final <- data.frame(preds=preds, actual=test_targets)
+
+knitr::kable(head(final))
+```
+
+```{r}
+lm_model = lm(train_y ~ train_x)
+
+te = data.frame(test_x)
+pred = predict(lm_model,newdata = te)
+
+
+```
+
+
+
+
+
+
+
+
+

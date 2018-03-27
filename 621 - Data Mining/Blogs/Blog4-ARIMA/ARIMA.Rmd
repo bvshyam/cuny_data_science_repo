@@ -1,0 +1,176 @@
+---
+title: "R Notebook"
+author: "Shyam BV"
+date: "March 15, 2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+## Introduction
+
+Regression is one of the most powerful algorithm to model the data. It is one of the most interpretable method compared to other algorithms. It can take different forms depending on the type of dataset.
+
+In this blog, we will see a special type of regression modelling called ARIMA and use packages to forecast it.
+
+## Description
+
+General regression models require observations to be iid(Independent and Identically Distributed) and should not be autoregressive. Often times, we need to work with a time-series dataset. In those scenarios, general regression models fail to perform better. 
+
+For those type of cases, we need a special type of regression modelling called ARMA(Auto Regressive Moving Average) and ARIMA(Auto Regressive Intergrated Moving Average).
+
+In this section, we will use Bitcoin(BTC) price data for past 2000 minutes and model it using `prophet` package.
+
+### Auto Regressive(AR) Models
+
+Auto regressive models are used to consider the previous values(in our case BTC price) for certain time lag.
+
+For example, if the price BTC price in this minute is \$100(I wish that), previous minute is \$97, 99, and so on until p timeframe. Then our model will be of following.
+
+$Y_t = \beta_0+\beta_1Y(t-1)+\beta_2Y(t-2)+...+\beta_pY(t-p)+ e_t$
+
+Similar to linear regression, the predictors are lagged versions of timeseries.
+
+### Auto Regressive Moving Average(ARMA)
+
+One major problem in auto regressive models is it does not consider the moving averages and errors from the previous prices. So the expression is altered to below one by considering previous errors. Here `p` is a time lag of prices and `q` is the time lage of errors. 
+
+$Y_t = \beta_0+\beta_1Y(t-1)+\beta_2Y(t-2)+...+\beta_pY(t-p)+e_t+\theta_1e(t-1)+....+\theta_qe(t-q)$ 
+
+Above expression is good for short term trends and predictions. But the problem is it does not consider any seasonal changes. To explain more, it does not consider if there is a dip in every 10th minute in BTC price or 5th minute increase in price. So this leads us to more complicated model called ARIMA.
+
+### Auto Regressive Integrated Moving Average(ARIMA)
+
+ARIMA models are less interpretable but is performs better on seasonal forecasting.
+
+
+
+In this blog, we are going to use a package called (`prophet`)[https://cran.r-project.org/web/packages/prophet/prophet.pdf] 
+
+
+
+```{r include=FALSE, echo=FALSE,   warning=FALSE, message=FALSE}
+
+library(prophet)
+library(dplyr)
+library(lubridate)
+library(forecast)
+library(ggplot2)
+```
+
+Below is the prices which is downladed from pricing exchanges. 
+
+```{r}
+#Training data
+df_prices_train=read.csv('./data/BTC_price_minute_old.csv',header=TRUE,sep=',')
+
+#Testing data
+df_prices_test =read.csv('./data/BTC_price_minute.csv',header=TRUE,sep=',')
+
+head(df_prices_train)
+```
+
+Where `datetime` is the time period of the price in GMT. Let us also load the actual datatime prices of BTC.
+
+
+
+```{r}
+
+
+df_prices_train$timestamp= as.POSIXct(df_prices_train$timestamp,tz = 'GMT')
+df_prices_test$timestamp= as.POSIXct(df_prices_test$timestamp,tz = 'GMT')
+
+#These names are required by prophet package
+names(df_prices_train)= c('y','ds')
+names(df_prices_test)= c('y','ds')
+
+plot(y ~ ds, df_prices_train, type='l',main="BTC Price per minute",xlab='Timestamp',ylab='BTC Price')
+
+
+
+```
+
+Plot shows that the price of BTC varies dynamically in a day. Volatility is so high in the price prediction. Lets see how `prophet` package handles it. 
+
+
+
+
+
+```{r include=FALSE, echo=FALSE,   warning=FALSE, message=FALSE}
+# Seasonal prediction using ARIMA
+#head(df_prices_train)
+
+#df_prices_train_timeseries = ts(df_prices_train$y,frequency=60)
+
+#arima <- auto.arima(df_prices_train_timeseries)
+
+#df_prices_train_timeseries_test = ts(df_prices_test$y,frequency=60)
+#pred_arima = predict(object=arima,df_prices_train_timeseries_test)
+
+```
+
+
+As a next step, we will build a prophet model. It is used to perform forecast for timeseries data. There is less amount of documentation on the mathematical part in library documentation. But under the hood, it uses ARIMA model.
+
+
+```{r}
+model <- prophet(df_prices_train)
+```
+This package automatically detects the seasonal changes according to timeframe. There are lot of additional parameters which we can provide to create this model.
+
+Now lets prepare our model for prediction. We need to specify the timeperiods which we need to predict. Here we are going to predict next 100 minutes/price.
+
+```{r}
+# Provide the timeframe
+future <- make_future_dataframe(model,periods = 100,freq=60)
+
+#Predict the price
+forecast <- predict(model, future)
+
+# Plot it
+plot(model, forecast,main="BTC Forecast",xlab='Timestamp',ylab='BTC Price') + geom_vline(aes(xintercept=max(as.numeric(df_prices_train$ds))-2))
+
+
+```
+Plot shows the negative trend of the prediction in next 100 minutes.
+
+Now lets validate how far it is correct and true
+
+```{r}
+
+price_predicts = forecast[forecast$ds > as.POSIXct('2018-03-21 16:16:00',tz = 'GMT'),]
+
+df_prices_test_actual = df_prices_test[df_prices_test$ds > as.POSIXct('2018-03-21 16:16:00',tz = 'GMT') &
+df_prices_test$ds <= as.POSIXct('2018-03-21 17:58:00',tz = 'GMT'),]
+
+names(df_prices_test_actual) = c('actual_price','timestamp')
+
+
+df_prices_test_actual$prediction = price_predicts$trend
+
+df_prices_test_actual$mae =  df_prices_test_actual$actual_price-df_prices_test_actual$prediction
+
+
+head(df_prices_test_actual)
+```
+
+
+Above shown prices are the acutal, predicted and the absolute error for each price prediction.
+
+It seems the prices are off around $70 for some days and it starts to increase further. We might need to add more features to the model for better estimate.
+
+
+## Conclusion
+
+ARMA and ARIMA models are excellent modelling technique for timeseries forecasting. It also provides options to seasonal level forecasting. 
+
+`prophet` library is excellent to perform timeseries forecast. It provides various functions to model and worth trying. BTC prices are so volatile and it cannot be predicted with a simple models.
+
+
+
+
+
+
+
+

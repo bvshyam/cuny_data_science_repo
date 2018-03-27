@@ -70,7 +70,7 @@ Actual response classes `class` are in columns and predicted response classes `s
 True positive classes - 119
 True negative classes - 27
 False Positive classes - 30
-False Positive classes - 5
+False Negative classes - 5
 
 ```{r include=TRUE, echo=TRUE,   warning=FALSE, message=FALSE}
 print(head(df))
@@ -285,7 +285,7 @@ F1-score is the harmonic mean of Sensitivity and specificity. It is an single nu
 
 
 
-$$F1-score = (2*Sensitivity*Specificity)/(Sensitivity+Specificity) $$
+$$F1-score = (2*Precision*Specificity)/(Precision+Specificity) $$
 
 
 ```{r include=TRUE, echo=TRUE,   warning=FALSE, message=FALSE}
@@ -424,7 +424,7 @@ with(roc_df, simple_auc(tpr, fpr))
 ```
 
 
-## Comare function
+## Compare function
 
 Lets run all the manually created evaluation metric functions to show the overall report.
 
@@ -473,6 +473,7 @@ rocCurve <- roc(response = df$class,
 
 
 ```
+
 ```{r include=TRUE, echo=TRUE,   warning=FALSE, message=FALSE}
 
 print('ROC Curve:')
