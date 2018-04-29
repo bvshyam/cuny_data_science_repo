@@ -1,0 +1,898 @@
+---
+title: "Car Crash Prediction"
+author: "Shyam BV"
+date: "April 8, 2018"
+output:
+  pdf_document: 
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    highlight: tango
+  html_document:
+    fontsize: 35pt
+    highlight: pygments
+    theme: cerulean
+    toc: yes
+---
+
+
+********
+
+
+\newpage 
+
+# **To build multiple linear regression and binary logistic regression models on the training data to predict the probability that a person will crash their car and also the amount of money it will cost if the person does crash their car.**
+
+********
+
+
+Deliverables:
+
+1. A write-up submitted in PDF format. Your write-up should have four sections. Each one is described below. You may assume you are addressing me as a fellow data scientist, so do not need to shy away from technical details.
+2. Assigned predictions (probabilities, classifications, cost) for the evaluation data set. Use 0.5 threshold.
+3. Include your R statistical programming code in an Appendix.
+
+
+
+```{r}
+library(dplyr)
+library(PerformanceAnalytics)
+library(imputeR)
+library(VIM)
+library(mice)
+library(dummies)
+library(leaps)
+library(ggplot2)
+library(MASS)
+library(faraway)
+library(dplyr)
+library(fastDummies)
+library(binr)
+library(glmnet)
+library(caret)
+library(pROC)
+library(splines)
+library(rstanarm)
+library(corrplot)
+```
+
+
+## Data Exploration
+
+Describe the size and the variables in the insurance training data set. Consider that too much detail will cause a manager to lose interest while too little detail will make the manager consider that you aren’t doing your job. Some suggestions are given below. Please do NOT treat this as a check list of things to do to complete the assignment. You should have your own thoughts on what to tell the boss. These are just ideas.
+
+a. Mean / Standard Deviation / Median
+b. Bar Chart or Box Plot of the data and/or Histograms
+c. Is the data correlated to the target variable (or to other variables?)
+d. Are any of the variables missing and need to be imputed "fixed"?
+
+
+
+```{r}
+df =read.csv('data/insurance_training_data.csv')
+
+eval =read.csv('data/insurance-evaluation-data.csv')
+
+
+```
+
+![Data Definition.](C:/Users/paperspace/Google Drive/CUNY/Courses/cuny_data_science_repo/621 - Data Mining/Count_regression/images/Definition.png)
+
+Below is the summary of the dataset and a quick view of the dataset.
+
+```{r}
+summary(df)
+head(df)
+```
+
+
+```{r}
+
+df_original <- df
+
+data.frame(NA_count = sapply(df_original, function(x) sum(is.na(x)))) 
+
+```
+
+
+
+Below are the inference from the summary:
+
+1. Index feature can be removed
+2. `Age,YOJ, CAR_AGE` variable has `NA` data. It needs to be handelled appropriately.
+3. `OLDCLAIM, BLUEBOOK,HOME_VAL, INCOME` has some blank data. And it has $ sign in it. So it is considered as factor. Need to clean the data.
+4. `PARENT1, MSTATUS,SEX,EDUCATION,JOB,CAR_USE,CAR_TYPE,RED_CAR,REVOKED,URBANICITY` is coded as categorical variable. It needs to be changed as dummy variable in the model.
+5. `CAR_AGE` has negative value. It needs to be corrected.
+
+As lot of cleaning needs to be performed, we will draw necessary plots after data preparation.
+
+
+### Response variables
+
+For this dataset, we have two response variables. They are `TARGET_FLAG` and `TARGET_AMT`. `TARGET_FLAG` mentions wheather the person will have a car crash or not.
+
+
+```{r}
+
+ggplot(df,aes(x=TARGET_FLAG)) +geom_histogram() + ggtitle('Distribution of Crashes')
+
+ggplot(df,aes(x=TARGET_AMT)) +geom_histogram() + ggtitle('Distribution of Amount spend')
+
+ggplot(df %>% filter(TARGET_FLAG==1),aes(x=TARGET_AMT)) +geom_histogram() + ggtitle('Distribution of Amount spend on crashed cars')
+
+```
+
+
+
+
+## Data Preparation
+
+Different data preparation needs to be performed. We will try to clean the data one by one.
+
+### Data Clearning
+
+####  Fixing $ value
+
+As a first step, there are some columns which has $ symbol in the values. Lets fix it in the first step so we can have numeric values.
+
+```{r}
+# Cleaning up the comma and $ sign in the amount columns
+dollar_cleanup <- function(x) {
+return(as.numeric(gsub(',','',gsub('\\$','',x))))
+}
+
+# Apply to all the applicable columns.
+df[,c('OLDCLAIM', 'BLUEBOOK','HOME_VAL', 'INCOME')] = apply(df[,c('OLDCLAIM', 'BLUEBOOK','HOME_VAL', 'INCOME')],2,FUN = dollar_cleanup)
+
+
+# Apply to all the applicable eval columns.
+eval[,c('OLDCLAIM', 'BLUEBOOK','HOME_VAL', 'INCOME')] = apply(eval[,c('OLDCLAIM', 'BLUEBOOK','HOME_VAL', 'INCOME')],2,FUN = dollar_cleanup)
+
+```
+
+#### Dropping Index column
+
+As index column is not required, we will drop the index column.
+
+```{r}
+
+# Dropping Index column
+df <- subset(df, select= -c(INDEX))
+
+head(df) 
+
+df_original = df
+
+#Evaluation
+eval <- subset(eval, select= -c(INDEX))
+
+```
+
+Summary of the dataset after performing cleaning the amount variables.
+
+
+```{r}
+summary(df_original)
+```
+
+
+
+### Fixing NA Values
+
+In this dataset, there are missing values in `AGE,YOJ, CAR_AGE, INCOME, HOME_VAL` variables. Each needs to be imputed differently. Lets impute the values by each variable.
+
+As a first step lets validate the records which are invalid or has `NA` on multiple columns.
+
+1. We cannot have `CAR_AGE` as negative. So lets drop the observations.
+2. If multiple variables like `HOMVE_VAL, INCOME, CAR_AGE, YOJ` are having NA we will drop those records.
+3. Lets drop the observations which has `HOME_VAL` as NA. Because the median house value is more than the mean. If imputation is performed, then it might skew the variable. So we will drop NA records.
+
+```{r}
+
+#Car Age cannot be -ve. So dropping the record
+df_original <- df_original[!c(!is.na(df_original$CAR_AGE) & df_original$CAR_AGE < 0),] 
+
+# Drop records which has NA in different columns
+
+df_original <- df_original[!c(-c(is.na(df_original$HOME_VAL)) & -c(is.na(df_original$INCOME)) & -c(is.na(df_original$CAR_AGE)) & -c(is.na(df_original$YOJ))),] 
+
+df_original <- df_original[!c(-c(is.na(df_original$HOME_VAL)) & -c(is.na(df_original$INCOME)) & -c(is.na(df_original$CAR_AGE)) ),] 
+
+
+df_original <- df_original[!c(-c(is.na(df_original$HOME_VAL)) & -c(is.na(df_original$INCOME))),] 
+
+df_original <- df_original[!c(-c(is.na(df_original$YOJ)) & -c(is.na(df_original$HOME_VAL))),] 
+
+#Drop Hom_VAL with NA records
+df_original <- df_original[!c(is.na(df_original$HOME_VAL)),]
+
+
+summary(df_original)
+
+
+```
+
+
+
+### Imputation
+
+
+As different columns `AGE,YOJ, CAR_AGE, INCOME, HOME_VAL` have NA variables, we need to fill those values with some sort of imputation. We will try different types of imputation.
+
+
+#### KNN Imputation
+
+Everyone driving should have a minimum age of 18. And the observations which has `NA` seems to kids. So their age should be more than 21+. `KNN` imputation will search for similar records and use the value for missing records.
+
+
+```{r}
+
+df_knn = kNN(df_original[, !names(df_original) %in% c("TARGET_FLAG","TARGET_AMT")],variable=c('AGE','YOJ', 'CAR_AGE', 'INCOME', 'HOME_VAL'),k=5)
+
+df_knn <- subset(df_knn, select = -c(AGE_imp,YOJ_imp,CAR_AGE_imp,INCOME_imp,HOME_VAL_imp))
+
+#df_knn =cbind(df_knn,TARGET_FLAG=df_original$TARGET_FLAG,TARGET_AMT=df_original$TARGET_AMT)
+
+```
+
+
+#### Median Imputation 
+
+Another option to perform imputation is using median. We will fill all the missing values as median value of that column.
+
+
+```{r}
+
+df_median = df_original
+
+df_median[, names(df_median) %in% c('AGE','YOJ', 'CAR_AGE', 'INCOME', 'HOME_VAL')]= apply(df_median[, names(df_median) %in% c('AGE','YOJ', 'CAR_AGE', 'INCOME', 'HOME_VAL')], 2,function(x) {if(is.numeric(x)) ifelse(is.na(x),median(x,na.rm=T),x) else x} )
+
+
+df_median <- df_median[, !names(df_median) %in% c("TARGET_FLAG","TARGET_AMT")]
+
+#summary(df_median)
+#head(df_median)
+
+eval[, names(eval) %in% c('AGE','YOJ', 'CAR_AGE', 'INCOME', 'HOME_VAL')]= apply(eval[, names(eval) %in% c('AGE','YOJ', 'CAR_AGE', 'INCOME', 'HOME_VAL')], 2,function(x) {if(is.numeric(x)) ifelse(is.na(x),median(x,na.rm=T),x) else x} )
+
+
+eval <- eval[, !names(eval) %in% c("TARGET_FLAG","TARGET_AMT")]
+
+
+
+```
+
+
+
+#### Mice Imputation
+
+mice short for Multivariate Imputation by Chained Equations is an R package that provides advanced features for missing value treatment. It uses a slightly uncommon way of implementing the imputation in 2-steps, using mice() to build the model and complete() to generate the completed data. The mice(df) function produces multiple complete copies of df, each with different imputations of the missing data. 
+
+```{r}
+
+
+
+#miceMod <- mice(df_original[, !names(df_original) %in% c("TARGET_FLAG","TARGET_AMT")], method="rf")  # perform mice imputation, based on random forests.
+
+#df_mice <- complete(miceMod)  # generate the completed data.
+
+#anyNA(df_mice)
+
+
+```
+
+
+```{r}
+# Set the type of imputation
+df_corrected =  df_median
+
+```
+
+### Imputation of Categorical Variable
+
+`JOB` variable has some blank values. As it is a text column, we cannot use previous methods. We will just create a new job category as `Other`. 
+
+```{r}
+
+# Convert to char for updating empty value to others          
+df_corrected$JOB = as.character(df_corrected$JOB)
+df_corrected[df_corrected$JOB =='',]$JOB ='Other' 
+
+
+
+# Convert the necessary categorical columns to factor and add amoutn columns
+df_corrected$KIDSDRIV = as.integer(df_corrected$KIDSDRIV)
+df_corrected$HOMEKIDS = as.integer(df_corrected$HOMEKIDS)
+df_corrected$JOB = as.factor(df_corrected$JOB)
+
+df_corrected<-cbind(df_corrected,TARGET_FLAG=df_original$TARGET_FLAG,TARGET_AMT=df_original$TARGET_AMT)
+summary(df_corrected)
+
+
+
+#Eval
+# Convert to char for updating empty value to others          
+eval$JOB = as.character(eval$JOB)
+eval[eval$JOB =='',]$JOB ='Other' 
+
+
+
+# Convert the necessary categorical columns to factor and add amount columns
+eval$KIDSDRIV = as.integer(eval$KIDSDRIV)
+eval$HOMEKIDS = as.integer(eval$HOMEKIDS)
+eval$JOB = as.factor(eval$JOB)
+
+
+
+```
+
+
+### Feature Engineering and Transformation
+
+We need to perform some transformations and add new features on the input dataset. This will provide more information to the model. 
+
+#### Binary Variables Creation
+
+We will convert add some binary variables. This information has been provided in the question. Below variables will be added to the dataset.
+
+1. New variable can have kids or No kids.
+2. Education less than High school and greater than high school, so creating a binary variable.
+3. In theory, home owners tend to drive more responsibly - So creating a binary variable.
+4. If Old claims are performed, then he has higher chances of crash - creating a binary variable.
+5. If CLM_FREQ is hig, then there are higher chaces of crash.
+6. If a home ownership is there, then less chances of crash.
+
+
+```{r}
+
+df_transformed <-df_corrected
+
+df_transformed$KIDSDRIV_BIN <- if_else(df_transformed$KIDSDRIV>0,0,1)
+df_transformed$HOMEKIDS_BIN <- if_else(df_transformed$HOMEKIDS>0,0,1)
+df_transformed$OLDCLAIM_BIN <- if_else(df_transformed$OLDCLAIM>0,1,0)
+#df_transformed$CLM_FREQ_BIN <- if_else(df_transformed$CLM_FREQ>0,1,0)
+df_transformed$EDUCATION <- if_else(df_transformed$EDUCATION =='<High School',0,1)
+df_transformed$HOME_OWN <- if_else(df_transformed$HOME_VAL>0,0,1)
+
+summary(df_transformed)
+
+
+#Eval
+eval$KIDSDRIV_BIN <- if_else(eval$KIDSDRIV>0,0,1)
+eval$HOMEKIDS_BIN <- if_else(eval$HOMEKIDS>0,0,1)
+eval$OLDCLAIM_BIN <- if_else(eval$OLDCLAIM>0,1,0)
+#eval$CLM_FREQ_BIN <- if_else(eval$CLM_FREQ>0,1,0)
+eval$EDUCATION <- if_else(eval$EDUCATION =='<High School',0,1)
+eval$HOME_OWN <- if_else(eval$HOME_VAL>0,0,1)
+
+```
+
+As a next step, we will also transform INCOME varaiable to different bins. We will split into three parts, low income class, middle class and high income.
+
+```{r}
+cuts = bins(df_transformed$INCOME,target.bins = 3, minpts = 1000)
+
+
+print(cuts$binct)
+
+df_transformed$INCOME_BIN <- if_else(df_transformed$INCOME>0 & df_transformed$INCOME<=37092,0,if_else(df_transformed$INCOME>37092 & df_transformed$INCOME<72611,1,2))
+
+#Eval
+eval$INCOME_BIN <- if_else(eval$INCOME>0 & eval$INCOME<=37092,0,if_else(eval$INCOME>37092 & eval$INCOME<72611,1,2))
+
+
+```
+
+
+
+#### JOB analysis
+
+Job plays a major role in accidents. Genearlly a person in white-collar is less likely to have an accident compared to blue-collar or a car driver. Because white-collar person works in a secured office and may not travel much. 
+
+Below is the distribution of the accidents. Doctors are very less likely to cause an accident. 
+
+```{r}
+barplot(table(df_transformed[,c('TARGET_FLAG','JOB')]))
+```
+
+We can group all the white-collar and blue-collar jobs. Here 'Clerical','Doctor','Lawyer','Manager','Professional','Other' are considered as white-collar job. We will convert all the values as white collar and leave out Home_maker and students. 
+
+```{r}
+df_transformed$JOB = as.character(df_transformed$JOB)
+
+df_transformed[df_transformed$JOB %in% c('Clerical','Doctor','Lawyer','Manager','Professional','Other'),]$JOB ='White_Collar'
+
+
+#Eval
+eval$JOB = as.character(eval$JOB)
+
+eval[eval$JOB %in% c('Clerical','Doctor','Lawyer','Manager','Professional','Other'),]$JOB ='White_Collar'
+
+```
+
+
+
+### Correlation Charts
+
+#### TARGET_FLAG Plots
+
+As a next step we will draw some correlation matrix and analyze individual charts. As the dataset has many variables, we will spilt it into different plots. 
+
+```{r }
+# Charts for Target_Flage
+
+#for(i in seq(1,35,by=5)){
+#chart.Correlation(cbind(df_transformed[,c(i:(i+5))], TARGET_FLAG = df_transformed[,c('TARGET_FLAG')]),histogram=TRUE,pch=19)
+#}
+
+
+
+```
+
+
+Above plots suggests that there are some room for improvemnt by performing binning. 
+
+
+
+```{r}
+#TARGET_AMT charts
+
+#for(i in seq(1,35,by=5)){
+#chart.Correlation(cbind(df_transformed[,c(i:(i+5))], TARGET_AMT = df_transformed[,c('TARGET_AMT')]),histogram=TRUE,pch=19)
+#}
+
+
+```
+
+
+
+
+### Numerical variables transformation
+
+Some of the other predictor variables are not correctly distributed. So we might need to perform transformations to correct the variables.
+
+```{r}
+
+
+
+log_transform <- function(x) {
+  return(log(x))
+}
+
+# Apply to all the applicable columns.
+#df_transformed[,c('INCOME','TRAVTIME', 'BLUEBOOK','TIF')] = apply(df_transformed[,c('INCOME','TRAVTIME', 'BLUEBOOK','TIF')],2,FUN = log_transform)
+
+```
+
+
+### Adding Dummy Variables
+
+As a next step, there are different factor variables with text. Those need to be converted to dummy variables. This is an important step in preparing the dataset.
+
+Finally we have created dummy variables for all the factor predictor variables. We have also performed the drop-off step. This dummy variables inclusion has increased the variable count. 
+
+```{r}
+
+#Creating dummies function
+
+create_dummies_replaced <- function(df_corrected, sel_cols){
+  df_dummy <- dummy_cols(df_corrected,select_columns = sel_cols,remove_first_dummy = TRUE)
+  return(df_dummy[,!(names(df_dummy) %in% sel_cols)])
+}
+
+
+df_transformed <- create_dummies_replaced(df_transformed,c('SEX','PARENT1','EDUCATION','MSTATUS','INCOME_BIN',  'JOB','CAR_USE','CAR_TYPE','RED_CAR','REVOKED','URBANICITY') )
+
+# Target_flag
+df_transformed_target_flg <- df_transformed %>% dplyr::select(-TARGET_AMT) 
+
+
+#EVal
+
+eval <- create_dummies_replaced(eval,c('SEX','PARENT1','EDUCATION','MSTATUS','INCOME_BIN',  'JOB','CAR_USE','CAR_TYPE','RED_CAR','REVOKED','URBANICITY') )
+
+
+
+```
+
+
+### Correlation matrix
+
+Below is the correlation matrix of the dataset.
+
+```{r}
+
+cormat <- as.matrix(cor(df_transformed, use = "pairwise.complete.obs"))
+
+#corrplot(cormat, method = "color",tl.cex = 0.7, addCoef.col = "black", addCoefasPercent = FALSE)
+
+
+zdf <- as.data.frame(as.table(cormat))
+
+with(zdf,zdf[order(Freq,decreasing = TRUE),]) %>%  data.frame() %>% filter(Var1!=Var2) %>% head()
+
+```
+
+
+
+
+### TRAN TEST Split
+
+As a final step before we build our models, we need to validate the models which we will build. However, there is no test dataset. We will split the dataset into two parts and use the test dataset to validate our model.
+
+
+```{r}
+
+set.seed(40)
+#Random numbers
+randomobs <- sample(seq_len(nrow(df_transformed_target_flg)), size = floor(0.7 * nrow(df_transformed_target_flg)))
+
+# Train dataset
+train <- df_transformed_target_flg[randomobs,]
+
+#Test dataset
+test <- df_transformed_target_flg[-randomobs,]
+
+```
+
+
+## Build Models and evaluation
+
+After performing all the data cleaning, transformations and feature engineering, we will build different models on car crash classification and cost of an accident(regression).
+
+### TARGET_FLAG - Crash prediction
+
+Car crash is an a binary response variable. Whether the crash happened or not. Our Models has to predict the binary variable. So these type of models will be a classification problem.
+
+
+```{r}
+outcomeName <- 'TARGET_FLAG'
+predictorsNames <- names(train)[names(train) != outcomeName]
+```
+
+
+#### Model 1 - GLM Stepwise selection 
+
+We will create a GLM binomial model with `logit` link function. As there are different variables which not statistcially significant, we will perform backward stepwise variable reduction.
+
+
+```{r}
+
+model_11_transformed_dummies = glm(TARGET_FLAG ~ ., train, family=binomial(link = 'logit'))
+
+model_11_backward = step(model_11_transformed_dummies,direction = 'backward',trace=FALSE)
+
+
+```
+
+Below are the different evaluation metrics we will perform to validate the model.
+
+```{r}
+summary(model_11_backward)
+
+plot(model_11_backward)
+plot(model_11_backward,which = c(4))
+
+
+# Predicted prob
+prediction_model11_prob = predict(model_11_backward,test[,predictorsNames], type='response')
+
+#Predicted class
+predicted_model11 = if_else(prediction_model11_prob>=0.5, 1,0)
+
+
+#print(confusionMatrix(data = predicted_model11, reference = test[,outcomeName],positive = "1"))
+
+#ROC Curve
+#roc_model11 <- roc(TARGET_FLAG ~ prediction_model11_prob, data = test)
+#auc_model11 <- round(roc_model11$auc, 4)
+
+
+#plot(roc_model11, legacy_axes =TRUE, col="blue", main = paste0("Model L1 ROC","\n","AUC : ",auc_model11))
+
+```
+
+
+
+#### Model 2- Lasso Binary regression using GLMNET
+
+In this type of model, we will create a LASSO binary regression using GLMNET package. In this approach, we will shrink the variable coefficents to 0 by selecting the appropirate lambda value.
+
+
+```{r}
+
+X = as.matrix(train %>% dplyr::select(-TARGET_FLAG))
+X_test = as.matrix(test %>% dplyr::select(-TARGET_FLAG))
+
+model21_glmmod <- cv.glmnet(X,y=train[,outcomeName], alpha=0.1)
+plot(model21_glmmod)
+
+# Predicted prob
+predict_glmnet.prob = predict(model21_glmmod,X_test,type='response',s=model21_glmmod$lambda.min)
+
+#Predicted class
+predicted = if_else(predict_glmnet.prob>=0.5, 1,0)
+
+
+print(confusionMatrix(data = predicted, reference = test[,outcomeName],
+                positive = "1"))
+
+#ROC Curve
+model21_glmmod_roc <- roc(TARGET_FLAG ~ predict_glmnet.prob, data = test)
+model21_glmmod_auc <- round(model21_glmmod_roc$auc, 4)
+
+
+plot(model21_glmmod_roc, legacy_axes =TRUE, col="blue", main = paste0("Model L1 ROC","\n","AUC : ",model21_glmmod_auc))
+
+```
+
+
+
+#### Model 3 - Bayesian Logistic Regression
+
+
+In this model, we will run Bayesian type logistic regression. Bayesian model calculates the prior and posterior probability using Markov Chain Monte Carlo(MCMC) method.
+
+`rstanarm` package provides functions to run Bayesian type models. 
+
+
+```{r}
+
+
+#t_prior =student_t(df=35, location = 0, scale = 2.5)
+
+#model_31_bayseian_scaled <- stan_glm(TARGET_FLAG ~ . ,data=train ,family=binomial(link='logit'), prior = t_prior, prior_intercept = t_prior, seed =1)
+
+#linpred <- posterior_linpred(model_31_bayseian_scaled)
+#preds <- posterior_linpred(model_31_bayseian_scaled, transform=TRUE)
+#pred <- colMeans(preds)
+#pr <- as.integer(pred >= 0.5)
+
+#confusionMatrix(data = pr,reference = train$TARGET_FLAG, positive = "1")
+
+```
+
+
+
+
+### TARGET_AMT - COST prediction
+
+Previously we have predicted the car crash using the available variables. As a next step, if the accident happens, we will build models to predict the cost of car to pay for that accident.  
+
+```{r}
+df_transformed_target_amt <- df_transformed %>% filter(TARGET_FLAG==1) %>% dplyr::select(-TARGET_FLAG) 
+
+
+#Random numbers target
+randomobs_amt <- sample(seq_len(nrow(df_transformed_target_amt)), size = floor(1 * nrow(df_transformed_target_amt)))
+
+# Train dataset
+train_target_amt <- df_transformed_target_amt [randomobs_amt,]
+
+#Test dataset
+test_target_amt <- df_transformed_target_amt[-randomobs_amt,]
+```
+
+
+#### Model 1 - Stepwise selection
+
+As a inital step we will build a simple stepwise model as a base. This will have all the variables and automatic stepwise selection process.
+
+
+```{r}
+
+# General model
+model_11_amt_step <- lm(TARGET_AMT ~ ., train_target_amt)
+
+
+# Remove outliers
+outliers_remove <- function(x,test_model){
+  rownames(x) <- NULL 
+  outliers <- cooks.distance(test_model)
+  plot(test_model,which = c(4))
+  print(as.numeric(row.names(data.frame(c(tail(sort(outliers),3))))))
+  x <- x[-as.numeric(row.names(data.frame(c(tail(sort(outliers),3))))),]
+  return(x)
+} 
+
+
+# Remove outliers 
+model_12_amt_step_outliers <- lm(TARGET_AMT ~ ., outliers_remove(train_target_amt,model_11_amt_step))
+
+# Summary
+summary(model_12_amt_step_outliers)
+
+
+
+```
+
+Created model is not very good for this particular dataset. As the response variable is skewed, we will transform the response variable and perform then create a model.
+
+```{r}
+
+log_transform <- function(x) {
+  return(log(x))
+}
+
+
+train_target_amt_income = train_target_amt
+
+train_target_amt_income$INCOME=train_target_amt_income$INCOME+0.00001
+
+# Apply to all the applicable columns.
+train_target_amt_income[,c('INCOME','TRAVTIME', 'BLUEBOOK','TIF')] = apply(train_target_amt_income[,c('INCOME','TRAVTIME', 'BLUEBOOK','TIF')],2,FUN = log)
+
+
+train_target_amt_nooutlier <- outliers_remove(train_target_amt_income,model_11_amt_step) 
+
+# Remove outliers 
+model_13_amt_step_outliers_log <- lm(log(TARGET_AMT) ~ ., train_target_amt_nooutlier)
+
+
+model_14_amt_step = step(model_13_amt_step_outliers_log,trace = FALSE)
+
+summary(model_14_amt_step)
+
+```
+
+Above model is better than the previous model. However, it has only less variables and the adjusted R2 is not very high. We will try other models and see.
+
+
+#### Model 2 - Regsubsets
+
+In this model, we will perform automatic selection of the variables using `regsubsets`.
+
+
+```{r}
+model_21_regfit <- regsubsets(TARGET_AMT ~ .,train_target_amt,nvmax = 35)
+
+model_21_regfit_summary <- summary(model_21_regfit)
+
+print(paste0('Adjusted R2:',max(model_21_regfit_summary$adjr2)))
+
+plot(model_21_regfit,scale='adjr2')
+
+
+```
+
+Automatic selection of variables did not improve much on the adj-R2. We will try other different models.
+
+
+#### Model 3 - Ridge Regression
+
+In this attempt, we will perform Ridge regression. Ridge regression uses L2 regulaization and reduces the coeffecients. 
+
+
+```{r}
+set.seed(825)
+fitControl <- trainControl(method = "cv",number = 10)
+# Set seq of lambda to test
+lambdaGrid <- expand.grid(lambda = 10^seq(10, -2, length=100))
+                          
+model_21_ridge <- train(TARGET_AMT ~ .,train_target_amt, method='ridge', lambda=10)
+
+model_21_ridge
+```
+
+It seems the results are not signficant. Rsquared has not immproved much. So this is also not the best model. 
+
+
+#### Model 4 - Regression Splines
+
+This time we will try a nonlinear model with regression splines. Splines provide a way to smoothly interpolate between fixed points called knots. 
+
+
+```{r}
+
+
+knots <- quantile(train_target_amt$BLUEBOOK)
+
+model_41_splines <- lm( TARGET_AMT ~ factor(SEX_z_F) + factor(MSTATUS_Yes) + factor(REVOKED_Yes) +bs(BLUEBOOK,knots =3):bs(MVR_PTS,knots=3):bs(OLDCLAIM,knots=3):bs(CLM_FREQ,knots=3):bs(CAR_AGE,knots=3) ,train_target_amt)
+
+model_41_splines_summary <- summary(model_41_splines)
+
+
+pred_splines = predict(model_41_splines,newdata = train_target_amt[,predictorsNames])
+
+# Splines - 6487
+rmse = sqrt(mean((train_target_amt$TARGET_AMT - pred_splines)^2))
+
+print(paste0("Adjusted R2: ",model_41_splines_summary$adj.r.squared))
+print(paste0("F-statistic: ",model_41_splines_summary$fstatistic))
+print(paste0("RMSE: ",rmse))
+plot(model_41_splines)
+plot(model_41_splines,which = c(4))
+
+```
+Above model is build from the base model from stepwise selection. When we add splines, then we get better adjusted R2 compared to other models. However, the residual plots show that there is some autocorrelation. So we will reject this model.
+
+## Model Selection 
+
+We have build different models and evaluated them. In this section, we will select the final model and add other metrics to it.
+
+### TARGET_FLAG Model
+
+We have build basic model, stepwise model, Lasso logistic regression and regsubsets model. It seems stepwise model is performing good and more interpretable. Lets analyze the model further. 
+
+
+```{r}
+summary(model_11_backward)
+
+print(confusionMatrix(data = predicted_model11, reference = test[,outcomeName],positive = "1"))
+
+#ROC Curve
+roc_model11 <- roc(TARGET_FLAG ~ prediction_model11_prob, data = test)
+auc_model11 <- round(roc_model11$auc, 4)
+
+
+plot(roc_model11, legacy_axes =TRUE, col="blue", main = paste0("Model L1 ROC","\n","AUC : ",auc_model11))
+
+```
+
+So the model perfoms well on the test dataset. Similar transformations needs to be performed on new dataset and predict the car crash.
+
+### TARGET_AMT Model
+
+We have build basic model, stepwise model, regsubsets, ridge regression and  regression splines model. By comparing ll the models, we can see stepwise model and regression splines model are performing better. However, all the models seems to do fairly bad. As the TARGET_AMT is fairly complex, I'll select the general linear regression with reduced variables.
+
+
+```{r}
+
+# Prediction on the train dataset
+pred_splines = predict(model_14_amt_step,newdata = train_target_amt[,predictorsNames])
+
+# Splines - 6487
+rmse = sqrt(mean((train_target_amt$TARGET_AMT - pred_splines)^2))
+
+print(paste0("Adjusted R2: ",summary(model_14_amt_step)$adj.r.squared))
+print(paste0("F-statistic: ",summary(model_14_amt_step)$fstatistic[1]))
+print(paste0("RMSE: ",rmse))
+plot(model_14_amt_step)
+plot(model_14_amt_step,which = c(4))
+
+
+```
+
+
+## Prediction of evaluation dataset
+
+Finally we will predict the values of evaluation dataset using the models which we freezed.
+
+### Target Flag
+
+```{r}
+# Adding to balance the columns
+eval$CAR_TYPE_Van =0
+
+# Predicted prob
+prediction_eval_flag = predict(model_11_backward,eval, type='response')
+
+#Predicted class
+predicted_model11 = if_else(prediction_model11_prob>=0.5, 1,0)
+table(predicted_model11)
+
+
+```
+We are predicting there will be around 381 crashes.
+
+### Target Amt
+
+```{r}
+
+# Prediction on the train dataset
+eval_prediction = predict(model_14_amt_step,newdata = eval)
+
+#Average Target amount 
+mean(eval_prediction)
+```
+
+
+## Summary
+
+1. We have performed data cleaning on the necessary columsn.
+2. Performed a detailed exploratory data analysis.
+3. Transformed the variables and added additional features.
+4. Build various models for predicting TARGET_FLAG and TARGET_AMT.
+5. Evaluated various metrics on the dataset and predicted the evaluation datasets.
+
+

@@ -1,0 +1,639 @@
+---
+title: "Count Regression - Wine Dataset"
+author: "Shyam BV"
+date: "April 27, 2018"
+output:
+  pdf_document: 
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    highlight: tango
+  html_document:
+    fontsize: 35pt
+    highlight: pygments
+    theme: cerulean
+    toc: yes
+---
+
+
+********
+
+
+\newpage 
+
+# **Count Regression Model : Predicting the cases of wine that will be sold using the chemical properties of wine**
+
+********
+
+
+## Overview
+
+Purpose of this assignment is to explore, analyze and model a dataset containing information on wine chemical information and wine cases sold. Each record has a response variable with the number of cases sold on that particular wine. The main objective is to build a Count Regression model on the training data set to predict the wine cases which will be sold depending on chemical properties.
+
+
+
+```{r global_options, include=FALSE, echo=FALSE,   warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(MASS)
+library(binr)
+library(glmnet)
+library(caret)
+library(corrplot)
+library(fBasics)
+#library(kableExtra)
+library(reshape2)
+library(Hmisc)
+library(pscl)
+library(car)
+
+```
+
+## Data Exploration
+
+Since the data is observational, we will analyze all the missing values and explore the summary statistics of each predictor variable. Also plot charts and see how individual variable affect the wine cases sold.
+
+![Data Definition.](C:/Users/paperspace/Google Drive/CUNY/Courses/cuny_data_science_repo/621 - Data Mining/Count_regression/images/wine_dataset.png)
+
+
+```{r}
+# Load data
+df =read.csv('data/wine-training-data.csv')
+
+eval =read.csv('data/wine-evaluation-data.csv')
+
+```
+
+
+### Summary Statistics
+
+```{r}
+tmp <- basicStats(df)
+
+tmp <-basicStats(df)
+tmp <- data.frame(t(tmp))
+tmp <- tmp[ , -which(names(tmp) %in% c("SE.Mean","LCL.Mean","UCL.Mean"))]
+colnames(tmp)[which(names(tmp) == "X1..Quartile")] <- "1st. Quartile"
+colnames(tmp)[which(names(tmp) == "X3..Quartile")] <- "3rd. Quartile"
+colnames(tmp)[which(names(tmp) == "nobs")] <- "Observations"
+
+
+#tmp %>% kable(format="html", digits= 2, caption = "Wine Dataset Variable Summary") %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+
+```
+```{r}
+# head(df) %>% kable(format='html') %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+```
+
+
+
+Below are the inference from the summary:
+
+1. Summary data shows that there are some variables(`ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS`) which are having missing values. We need to perform some form of imputation for those. 
+2. `TARGET` is in the number of cases sold.
+3. Variables are in different scales. Some observations starts from negative value and some from 0 or positive value.
+4. There is an ordinal categorical predictors called `STARS`. This is the rating of the wine.
+5. `LabelAppeal` is a label design score of the customers. It can be treated as an categorical variable.
+
+
+### Predictor variable Plots 
+
+
+As the `Index` column does not add any value to the dataset, we will remove it. 
+
+```{r}
+df<- df %>%  dplyr::select(-1)
+
+eval<- eval %>%  dplyr::select(-1)
+
+```
+
+
+#### Box plot
+
+Below is the box plot of all the predictor variables.
+
+```{r}
+
+melt.df <- df %>% melt(id.vars = 'TARGET')
+
+ggplot(melt.df, aes(x=variable,y=value)) + geom_boxplot(varwidth=T)+  facet_wrap(~variable, scale="free", nrow = 8, ncol = 2) + ggtitle("BoxPlot") +coord_flip()
+
+
+```
+
+Above plots show that different variables have many observations outside the mean/median range. 
+
+### Histogram of Variables
+
+Below plots show the histogram plot of the predictor variables.
+
+```{r}
+hist.data.frame(df, n.unique=1, mtitl = "Wine Predictors Histogram")
+
+```
+
+Histogram plots show that the varibles `FixedAcidity, VolatileAcidity, CitricAcid, ResidualSugar, Chlorides, FreeSulfurDioxide, Density, pH, Sulphates,Alcohol, AcidIndex` are heavily centered around the mean. 
+
+`LabelAppeal and STARS` are ordinal categorical variable.
+
+
+#### Target vs Other Variables
+
+Below plots show how each predictor variables impact the target variable.
+
+```{r}
+
+#ggplot(meltData, aes(x=value, y=target)) + geom_point(shape=1,size=0.75, alpha=0.2) +
+#geom_jitter(position=position_jitter(0.01), size=
+  
+  
+ggplot(melt.df %>% dplyr::filter(variable =='FixedAcidity'), aes(x=value,y=TARGET)) + geom_point()
+
+
+ggplot(melt.df %>% dplyr::filter(variable =='VolatileAcidity'), aes(x=value,y=TARGET)) + geom_point()
+
+ggplot(melt.df,aes(x=value,y=TARGET)) + geom_point() + facet_wrap(~variable, scale="free", nrow = 8, ncol = 2) 
+
+
+```
+
+Above plot does not explain the individual relationship between the variables. TARGET variable is evenly distributed. 
+
+#### Correlation matrix
+
+Lets check the relation between the variables.This will show how each variables are correlated.
+
+```{r}
+
+correlation <- cor(df,use = "pairwise.complete.obs")
+corrplot(correlation, method='number')
+```
+
+
+```{r}
+correlation <- cor(df,use = "na.or.complete")
+zdf <- as.data.frame(as.table(correlation))
+
+with(zdf,zdf[order(Freq,decreasing = TRUE),]) %>%  data.frame() %>% dplyr::filter(Var1!=Var2) %>% head()
+```
+
+It looks like the highest correlation number is around 0.55. So we can conclude that the variables are not highly correlated and does not suffer from multi-collinearity.
+
+
+### Target Variable analysis
+
+Lets dig deep into the target variable and analyze the values in it.
+
+```{r}
+print("Unique TARGET Counts:")
+print(unique(df$TARGET))
+
+df %>% dplyr::filter(TARGET==0) %>% dplyr::select(c('TARGET',"STARS")) %>% group_by(STARS) %>% summarise(n())
+```
+
+Above table shows that the most of the TARGET values with 0 has zero stars. This seems to be some sort of pattern between those variables. So we will assign 0 for all the missing values in STARS variable.
+
+
+## Data Preparation
+
+In the data analysis we found out that there are some variables with missing values. So in this section, we will address it and we will also the transformation of variables.
+
+### Dropping NA rows
+
+We need to drop the observations which has multiple `NA` values.
+
+```{r}
+
+df <- df[!c(-c(is.na(df$ResidualSugar)) & -c(is.na(df$Chlorides)) & -c(is.na(df$FreeSulfurDioxide)) & -c(is.na(df$TotalSulfurDioxide))),] 
+
+df <- df[!c(-c(is.na(df$ResidualSugar)) & -c(is.na(df$Chlorides)) & -c(is.na(df$FreeSulfurDioxide)) & -c(is.na(df$TotalSulfurDioxide))),] 
+
+df_imputation <- df
+```
+
+
+
+
+### Imputation
+
+As a next step we need to create a statergy and apply impuation for the missing values variables `ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol`.
+
+
+```{r}
+
+df_imputation[, names(df_imputation) %in% c('FreeSulfurDioxide','ResidualSugar','Chlorides', 'TotalSulfurDioxide', 'pH', 'Sulphates','Alcohol')]= apply(df_imputation[, names(df_imputation) %in% c('FreeSulfurDioxide','ResidualSugar','Chlorides', 'TotalSulfurDioxide', 'pH', 'Sulphates','Alcohol')], 2,function(x) {if(is.numeric(x)) ifelse(is.na(x),median(x,na.rm=T),x) else x} )
+
+
+
+eval[, names(eval) %in% c('FreeSulfurDioxide','ResidualSugar','Chlorides', 'TotalSulfurDioxide', 'pH', 'Sulphates','Alcohol')]= apply(eval[, names(eval) %in% c('FreeSulfurDioxide','ResidualSugar','Chlorides', 'TotalSulfurDioxide', 'pH', 'Sulphates','Alcohol')], 2,function(x) {if(is.numeric(x)) ifelse(is.na(x),median(x,na.rm=T),x) else x} )
+
+
+```
+
+Now we will impute 0 for all the missing values in STARS variable.
+
+```{r}
+df_imputation[is.na(df_imputation$STARS),]$STARS <- 0
+
+
+eval[is.na(eval$STARS),]$STARS <- 0
+
+```
+
+
+
+
+
+
+### Ordered variables
+
+As a next step, we need to convert the categorial variables to the dummy variables. Dummy variables will create a unique variable for each category.
+
+Here the `LabelAppeal and STARS` are considered as ordinal categorical variables. Because LabelAppeal rating depends on the customer who likes the label. STARS is the rating of the wine. So it cannot be treated as regular categorical variable.
+
+```{r}
+#Convert to ordinal variables
+df_imputation$LabelAppeal <- ordered(df_imputation$LabelAppeal)
+df_imputation$STARS <- ordered(df_imputation$STARS)
+
+
+
+eval$LabelAppeal <- ordered(eval$LabelAppeal)
+eval$STARS <- ordered(eval$STARS)
+
+
+
+```
+
+
+
+### Training and Test dataset
+
+Now we will split the dataset into training and testing dataset. This will allow us to validate the model and tune the model.
+
+```{r}
+set.seed(40)
+#Random numbers
+randomobs <- sample(seq_len(nrow(df_imputation)), size = floor(0.7 * nrow(df_imputation)))
+
+# Train dataset
+train.df <- df_imputation[randomobs,]
+
+#Test dataset
+test.df <- df_imputation[-randomobs,]
+```
+
+
+
+## Build Models
+
+In this section, we will build different models to predict the wine cases. As the TARGET variable is a count of cases, we need to use count regression techniques. Also the TARGET variable can be transformed into different categories and create a multinomial model. Lets develop different models one by one.
+
+
+
+
+### Model 1 - Poisson Regression models
+
+A random variable Y is said to have a poisson distribution with parameter $\mu$ if it takes the integer values y=0, 2, 4, 6 with probability
+
+$Pr(Y=y) = (e^-\mu \mu^y)/y!$
+
+Lets verify if the mean and the variance of the response variable are same. 
+
+```{r}
+mean(train.df$TARGET)
+var(train.df$TARGET)
+
+```
+
+It seems there is a difference between the mean and variance. It suffers from overdispersion. However, it is a minor difference. We will assume the dispersion as 1.
+
+
+
+```{r}
+# Building the inital model
+model_21_poisson <- glm(TARGET ~. ,train.df,family = 'poisson')
+
+summary(model_21_poisson)
+
+model_22_poisson <- update(model_21_poisson,.~.-FixedAcidity-ResidualSugar-CitricAcid-Density-pH)
+summary(model_22_poisson)
+
+
+#halfnorm(residuals(model_22_poisson))
+
+anova(model_22_poisson,test='Chisq')
+
+# Verifying the outliers
+influencePlot(model_22_poisson)
+
+```
+
+Removing the outliers and refitting the model
+
+```{r}
+#Without outliers
+model_23_poisson_rmout <- glm(TARGET ~. ,train.df[-c(4940,12513)],family = 'poisson')
+
+
+model_24_poisson_rmout <- update(model_23_poisson_rmout,.~.-FixedAcidity-ResidualSugar-CitricAcid-Density-pH)
+summary(model_24_poisson_rmout)
+
+```
+Removing outliers did not make any difference in the model. Lets perform final prediction of the model.
+
+
+
+```{r}
+
+#Model selection metrics
+metrics = data.frame()
+
+
+# Predicting for Test data
+predict_model_24 <- round(predict(model_24_poisson_rmout, newdata = test.df, type = "response"), 0)
+
+# Calculating MSE
+#model_24_mse <- mean((test.df$TARGET - predict_model_24)^2, na.rm = TRUE)
+
+metrics <- rbind(metrics,data.frame(Name='Poisson Model',AIC=round(AIC(model_24_poisson_rmout),2),MSE=mean((test.df$TARGET - predict_model_24)^2, na.rm = TRUE)))
+
+names(metrics) <- c('Name','AIC','MSE')
+
+
+
+
+results_add <- function(model, name) {
+
+# Predicting for Test data
+pred <- round(predict(model, newdata = test.df, type = "response"), 0)
+
+metrics <- rbind(metrics,data.frame(Name=name,AIC=round(AIC(model),2),MSE=mean((test.df$TARGET - pred)^2, na.rm = TRUE)))
+
+return(metrics)
+
+}
+
+```
+
+
+
+### Zero Inflated Poisson
+
+As the TARGET variable has many 0 counts, we can look for alternative models. Zero inflated poisson model is an another type of model which can be created for this type of dataset.
+
+#### Model 2.1 - Zero Inflated Poisson with New Var
+
+In this model, we will build a fresh model and reduce the varaibles which are not statistically significant.
+
+```{r}
+
+model_31_zif <- zeroinfl(TARGET ~ ., train.df,dist='poisson')
+
+
+summary(model_31_zif)
+```
+
+
+```{r}
+
+model_32_zif_rm <- zeroinfl(TARGET ~ .-STARS-Density-FixedAcidity-ResidualSugar, train.df,dist='poisson')
+
+
+AIC(zeroinfl(TARGET ~ .-STARS-Density-FixedAcidity-ResidualSugar, train.df,dist='poisson'))
+
+
+metrics <- results_add(model_32_zif_rm,'Zero Inflation Poisson')
+
+metrics
+```
+
+Above results show that the AIC is less, but the MSE gets increased in Zero inflaction possion model.
+
+#### Model 2.2 - Zero Inflated Poisson - Old var
+
+In this model, we will used the variables which were already selected in the poisson model.
+
+```{r}
+
+model_33_zif_oldvar <- zeroinfl(TARGET~.-FixedAcidity-ResidualSugar-CitricAcid-Density-pH, data=train.df, dist='poisson')
+
+summary(model_33_zif_oldvar)
+
+metrics <- results_add(model_33_zif_oldvar,'Zero-Inflated Poisson old var')
+
+metrics
+
+```
+
+#### Vuong Test
+
+In this section, we will compare poisson model and zero inflated model. 
+
+```{r}
+vuong(model_23_poisson_rmout, model_33_zif_oldvar)
+```
+
+Vuong test compares the zero-inflated model with an ordinary poisson regression model. In this dataset, we can see that our test statistic is significant, indicating that the zero-inflated model is superior to the standard poisson model.
+
+
+
+### Model 3 - Negative Binomial model
+
+Negative Binomial regession model is used when we have an overdispersion. It means the variance is higher than the mean. And there is a large number of `0` counts.
+
+As we have seen before, that the variance of this dataset is higher than the mean and the histogram plot shows that there are higher number of zeros, we will model negative binomial model.
+
+#### Model 3.1 - Normal negative binomial model
+
+In this model, we will use a general negative binomial model and see how the model performs in the test dataset.
+
+```{r}
+model_41_nbm <- glm.nb(TARGET ~., train.df)
+
+```
+
+```{r}
+
+model_41_nbm_var <- update(model_41_nbm,.~.-ResidualSugar-FixedAcidity-pH-CitricAcid-Density)
+summary(model_41_nbm_var)
+
+
+metrics <- results_add(model_41_nbm_var,'Negative Binomial')
+
+```
+
+Model evaluation shows that the AIC and MSE is almost similar to Poisson distribution.
+
+
+
+#### Model 3.2 - Negative Binomial with zero inflated
+
+In this model, we will have a combination of negative binomial model which is zero-inflated. 
+
+
+```{r}
+
+
+model_42_nbm_zi <- zeroinfl(TARGET ~ ., data = train.df,dist=c('negbin'))
+
+```
+
+```{r}
+model_42_nbm_zi_rm_var <- zeroinfl(TARGET ~ .-STARS-Density-FixedAcidity-ResidualSugar-Alcohol, data = train.df,dist=c('negbin'))
+
+summary(model_42_nbm_zi_rm_var)
+
+
+
+metrics <- results_add(model_42_nbm_zi_rm_var,'Zero-inflated Negative Binomial Stepwise selection')
+
+
+model_43_nbm_zi_rm_old_var <- zeroinfl(TARGET~.-FixedAcidity-ResidualSugar-CitricAcid-Density-pH, data=train.df, dist='negbin')
+
+metrics <- results_add(model_43_nbm_zi_rm_old_var,'Zero-inflated Negative Binomial same Variables')
+
+```
+
+This results to a similar model like zero-inflated model with Poisson.
+
+
+
+
+### Model 4 - Multiple linear regression 
+
+As the TARGET variable involves the counts, this might not be the suitable model for wine dataset. But to just get an overall idea, we will create a linear model and see.
+
+#### Model 4.1 - Multiple Linear regression without Transformation
+
+```{r}
+model_11_lm <- lm(TARGET ~. ,train.df)
+
+
+model_12_lm_step <- step(model_11_lm,trace = FALSE)
+
+summary(model_12_lm_step)
+
+metrics <- results_add(model_12_lm_step,'Multiple Linear model stepwise')
+
+```
+
+On a inital look, the model is not doing a bad job at prediction. However, this is not a good model on counts TARGET variable. 
+
+
+#### Model 4.2 - Multiple linear regression with Transformation
+
+In the previous multiple linear regression model, we have have a limitation on the dependent variable. Limitation is count cannot be a negative value. However the limitation is not there on the predictor variables.
+
+To overcome this limitation we will transform the dependent variable using log transformation. It will overcome this limitation.
+
+```{r}
+
+
+
+model_13_lm_transform <- lm(log(train.df$TARGET+.0000000001) ~. ,train.df)
+summary(model_13_lm_transform )
+
+model_13_lm_transform_rm_pred <- update(model_13_lm_transform, .~.-FixedAcidity-CitricAcid-Density-ResidualSugar)
+
+summary(model_13_lm_transform_rm_pred)
+
+
+```
+
+Log transformed model is not performing well in this type of dataset. Adjusted R-squared is low compared to the previous multiple linear regression model. 
+
+### Model Interpreation
+
+As we have build different models, we will compare the models and interprent the poisson model.
+
+Comparing all the model variables, it seems some of the variables are statistically significant in all the models. They are `LABELAPPEAL, TotalSulfurDioxide, FreeSulfurDioxide, Sulphates, VolatileAcidity`.
+
+Model interpreation of poission model is as follows  
+
+For per unit increase, given the other variables are held constant in the model,
+
+1. VolatileAcidity - Difference in the logs of expected count would decrease by 0.03.
+2. Chlorides - Difference in the logs of expected count would decrease by 0.04.
+3. FreeSulfurDioxide - Difference in the logs of expected count would increase by 0.0009.
+4. TotalSulfurDioxide - Difference in the logs of expected count would increase by 0.0008.
+5. Sulphates - Difference in the logs of expected count would decrease by 0.01.
+6. Alcohol - Difference in the logs of expected count would increase by 0.03.
+
+7. LabelAppeal.L - Estimated poisson regression cefficient comparing LabelAppeal -1 to -2, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.5 unit higher for LabelAppeal -1 compared to -2.
+
+8. LabelAppeal.Q - Estimated poisson regression cefficient comparing LabelAppeal 0 to -2, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.08 unit lower for LabelAppeal 0 compared to -2.
+
+9. LabelAppeal.L - Estimated poisson regression cefficient comparing LabelAppeal 1 to -2, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.02 unit higher for LabelAppeal 1 compared to -2.
+
+10. LabelAppeal.L - Estimated poisson regression cefficient comparing LabelAppeal 2 to -2, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.008 unit higher for LabelAppeal 2 compared to -2.
+
+11. Alcohol - Difference in the logs of expected count would decrease by 0.08.
+
+12. STARS.L - Estimated poisson regression cefficient comparing STARS 1 to 0, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.9 unit higher for STARS 1 compared to 0.
+
+13. STARS.Q - Estimated poisson regression cefficient comparing STARS 2 to 0, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.3 unit lower for STARS 2 compared to 0.
+
+14. STARS.C - Estimated poisson regression cefficient comparing STARS 3 to 0, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.1 unit higher for STARS 3 compared to 0.
+
+15. STARS^4 - Estimated poisson regression cefficient comparing STARS 4 to 0, given the other variables are held constant. The difference in the logs of expected counts is expected to be 0.01 unit lower for STARS 4 compared to 0.
+
+```{r}
+summary(model_24_poisson_rmout)
+
+```
+
+
+
+## Select Model
+
+We have created various models and interpreted the them. Finally we have to select the best performing model. We have calculated the AIC and MSE for all the models. 
+
+```{r}
+print(metrics)
+```
+
+From above results, we see that zero inflated Poisson model with same variables used by Poisson model is performing better. However, Poisson model is more interpretable. So we will select that model as our final model compared to other models.
+
+
+### Prediction on evaluation dataset
+
+Finally lets predict on the evaluation dataset.
+
+```{r}
+
+# Predicting for evaluation data
+predict_eval <- round(predict(model_24_poisson_rmout, newdata = eval, type = "response"), 0)
+
+#Mean is greater than variance
+mean(predict_eval)
+var(predict_eval)
+
+
+eval_df_prediction <- cbind(TARGET= predict_eval,eval %>% dplyr::select(-TARGET) )
+
+head(eval_df_prediction)
+```
+
+## References
+1. Pavan HW3 Markdown
+2. stats.idre.ucla.edu/stata/output/poisson-regression/
+
+
+
+
+
+
+
+
+
+
+
+
+
