@@ -1,74 +1,162 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
+## Introduction
+
+We all have heard about Neural network and its prediction power. Underlying concepts of neural networks were not new and it uses traditional statistical techniques like linear regression. Many have a question in mind to compare neural networks and linear regression.
+
+In this blog post, I am going to compare neural networks and linear regression with an example dataset. So this will provide more information and clarity on neural networks.
+
+
+
+
 ```{r}
+#devtools::install_github('rstudio/cloudml')
+
 library(keras)
 library(dplyr)
 ```
 
+```{r}
+#cloudml_train('train.R')
+```
+
+## Back to the basics - Linear Regression
+
+Lets go back to the basics of statistics "Linear Regression". It is one of the oldest ML model. Everyone has used it or heard of it. There are many different versions of linear regression with different math behind it. But we are going to see a simple form of multiple linear regression. 
+
+
+In this test, we will be using a dataset related to excercise. Dataset is choosen to motivate everyone and the effects of it. You learn the technical part and also get to know about the excercises(Thats great!). 
+
+Our dataset has different predictor variables like Height, weight, duration of excercise, heart rate at that period, body temprature and gender. Our response variable is Calories burnt.
+
+
 
 ```{r}
-x <- 1:10
-xs = scale(x)
 
-x.orig = t(apply(xs, 1, function(r)r*attr(xs,'scaled:scale') + attr(xs, 'scaled:center')))
-x.orig
+# Loading data
+excercise <- read.csv('./data/excercise.csv',stringsAsFactors = FALSE)
+calories <- read.csv('./data/calories.csv',stringsAsFactors = FALSE)
+
+# Merging the data
+df = merge(x=excercise,y=calories,by='User_ID')
+
+# Dummy variable for gender
+df$Gender_bin <- factor(if_else(df$Gender=='female',0,1))
 
 
-normalize(x)
+df <- df %>%  dplyr::select(-c(User_ID,Gender))
+
+head(df)
+
+```
+
+As a good data science citizen, we need to split our dataset into two and create a multiple linear regression model. 
+
+```{r}
+set.seed(40)
+#Random numbers
+randomobs <- sample(seq_len(nrow(df)), size = floor(0.7 * nrow(df)))
+
+# Train dataset
+train.df <- df[randomobs,]
+
+#Test dataset
+test.df <- df[-randomobs,]
+
 ```
 
 
 
+```{r}
+model_1_multipe <- lm(Calories ~ .,train.df)
+summary(model_1_multipe)
+```
+```{r}
+pred_regression <- predict(model_1_multipe, test.df %>% select(-Calories),type='response')
+
+print(sqrt(mean((test.df$Calories - pred_regression)^2)))
+```
 
 
 
+Above model show that all the predictors are significant in predicting the calories burnt. And we got an impressive adjusted R-squared of 0.967. We might also think, we do we need use neural networks here. But lets put these results in our pocket and try out neural networks.
+
+
+## Fancy linear regression - Neural Networks(NN)
+
+Now, lets use some fancy words in our model called neural networks. Neural netwoks learn the weights similar to linear regression. It involves series of matrix operations on different layers. But lets try to make it simple with one hidden layer. 
+
+We will keras package for building this NN. It sits on top of Tensorflow framework. In R, we easily install that package.
+
+### What is neural + networks?
+
+Lets get back to Neural networks, everyone has a basic question, what is neuron and why it is called as networks? Neurons are simple computational units that have weighed input signals and produce an output signal using an activation function. Network is a series of layers which are combined together.
+
+### Neuron weights 
+Neuron weights are pretty much like the coefficients used in a regression equation. Like linear regression, each neuron has a bias term which is added to the input. Generally weights are initialized to a small random values in range 0 to 1. It is desirable to keep small weights. That is an another reason to scale our input data. 
+
+### Activation function
+
+Weighted inputs are summed and passed through an activation or transfer function. An activation function is a simple mapping of summed weighted input to the output of the neuron. It decides whether the neuron has to be activated and the output should be sent to next layer or not. Traditionally nonlinear activation functions are used to model complex data. More recently the rectfifier activation function has been shown to provide better results.
+
+### Modelling using neural networks
 
 ```{r}
 
-df = dataset_boston_housing()
+train.df$Gender_bin <- if_else(train.df$Gender_bin==0,0,1)
+test.df$Gender_bin <- if_else(test.df$Gender_bin==0,0,1)
 
-#train = data.frame(df$train$x,medv = df$train$y)
+train_x <- train.df %>% select(-Calories) %>% scale()
+train_x_s <- scale(train_x)
 
-#train_scale = scale(train)
+train_y <- train.df %>% select(Calories)%>% as.matrix()
 
-train_x = normalize(df$train$x)
-train_y = t(normalize(df$train$y))
-test_x = normalize(df$test$x)
-test_y = t(normalize(df$test$y))
+test_x <- test.df %>% select(-Calories) 
+test_x_s <- scale(test_x)
 
+test_y <- test.df %>% select(Calories)%>% as.matrix()
 
 
 ```
 
+
+Now we have defined our training and testing dataset which has been scaled. Scaling will be reduce the magnitude of the values, so NN can perform backpropagation. Backpropagation will update the weights of the units. 
+
+The model which we are creating is a sequential model. And the model need to know the number of predictors which is been pasesed. We dont need to supply sample size. We also need to pass the number of neurons or units which needs to be created initially.
+After that we need to add the hidden layer, here we need to mention the count of neurons. Finally, we need to create a layer which is of one neuron to predict the Calories burnt. 
+
+
 ```{r}
+
+
 model <- keras_model_sequential() 
 
-model %>% layer_dense(units = 8, activation = 'relu', input_shape = c(13)) %>% 
+model %>% layer_dense(units = 8, activation = 'relu', input_shape = c(7)) %>% 
   layer_dense(units = 64, activation = "relu") %>%
   layer_dense(units = 1)
 
-
-    
-
-```
-
-
-```{r}
 summary(model)
 ```
-
-
-```{r}
-model %>% compile(loss='mse',optimizer='rmsprop',metrics='mae')
-```
+We also need to define the loss metric. Model will optimize the weights depending on the loss function. Optimizer is a type of stocastic gradient decent.
 
 ```{r}
-history = model %>% fit(train_x,train_y, epochs=100,batch_size = 8,validation_split = 0.2)
+model %>% compile(loss='mse',optimizer='rmsprop',metrics='mse')
 ```
+
+Finally we will fit the model with 100 epochs(100 different times) and the batch size(it will update weights after each batch)
+
+```{r}
+history = model %>% fit(train_x_s,train_y, epochs=10,batch_size = 8,validation_split = 0.2)
+
+```
+
+Model has been executed for 10 epochs and finally it got trained with the proper weights. This is the final model which can be used to predict the future data. Lets quickly plot the loss and error
 
 
 ```{r}
@@ -76,27 +164,25 @@ plot(history)
 
 ```
 
+Finally we will evaluate the model with test dataset. This will provide the 
+
 ```{r}
-evaluate(model, test_x, test_y)
+#RMSE
+print(sqrt(evaluate(model, test_x_s, test_y)$mean_squared_error))
 ```
 
 ```{r}
-preds <- predict(model, test_x)
-final <- data.frame(preds=preds, actual=test_targets)
+preds <- predict(model, test_x_s)
+
+
+final <- data.frame(preds_nn=preds,preds_lr =pred_regression, actual=test_y)
 
 knitr::kable(head(final))
 ```
 
-```{r}
-lm_model = lm(train_y ~ train_x)
+# Conclusion
 
-te = data.frame(test_x)
-pred = predict(lm_model,newdata = te)
-
-
-```
-
-
+We can see from the results that a simple neural network outperforms the linear regression. We can do lots of improvement to linear model, however it has to be done manually. But in neural network, we have not performed any major transformations. Still NN outperforms many manual models easily. NN shine when there is more complex dataset.
 
 
 

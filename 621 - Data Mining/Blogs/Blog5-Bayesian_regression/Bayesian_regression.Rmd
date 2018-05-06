@@ -1,0 +1,165 @@
+---
+title: "Bayesian Linear Regression"
+author: "Shyam BV"
+date: "April 30, 2018"
+output: html_document
+---
+
+## Introduction
+
+Bayes Theorem is one of the most powerful equation in Statistics. It uses prior knowledge and takes a different approach compared to Frequenist approch. Bayesian vs Frequentist debate has a big history and an on-going debate. It is imperative to understand both sides of the table. 
+
+In this blog, we will introduce Bayesian Linear regression and the math behind it. We will also compare it with general linear regression.
+
+
+## Recap of Linear regression - Frequentist approch
+
+From the frequentist approch, the linear regression will be of below form.
+
+$y=\beta_0+\beta_1x_1+\beta_2x_2+e$
+
+We have seen various forms of linear regression throughout the class. Here y is the response variable and x are the predictor variables. All we do is to find the weights of $\beta$ by minimizing residual sum squares(RSS). Line of best fit is formed using OLS method.
+
+With all these calculation, we boild down to single estimate for the model parameters with confidence interval using training data. Our model is completely informed by the data. Once we have our $\hat\beta$ values, we will estimate the response values.
+
+```{r include=FALSE,echo=FALSE}
+library(ggplot2)
+library(BLR)
+library(dplyr)
+```
+
+
+```{r}
+excercise <- read.csv('./data/excercise.csv',stringsAsFactors = FALSE)
+calories <- read.csv('./data/calories.csv',stringsAsFactors = FALSE)
+
+df = merge(x=excercise,y=calories,by='User_ID')
+
+
+head(df)
+```
+
+Now, we will fit a simple linear regression using one variable and estimate the model parameters.
+
+```{r}
+linear_model <- lm(Calories ~ Duration,df)
+summary(linear_model)
+```
+
+Here the intercept is -21.85 and the estimated $\hat\beta$ for duration is is 7.1729. This means, if you excercise duration is 20 minutes, calories which you will burn is 
+
+```{r}
+plot(Calories ~ Duration,df)
+-21.87+(7*20)
+```
+
+
+
+around 118.13 calories. So it provides a single point of estimate. We can add confidence interval to it. Current dataset is of decent size, but if we have a small dataset the estimate fluctuates. This is were Bayesian linear regression comes to the picture.
+
+## Bayesian Linear Regression
+
+Bayesian linear regression is an one form of approch to linear regression within the context of Bayesian inference. In Bayesian viewpoint, linear regression is formulated using probability distributions rather than point estimates. Response variable y is not estimated as a single value, but it is assumed to be drawn from probability distribution. 
+
+$y = N(\beta^T X, \sigma^2 I)$
+
+
+Response y is generated from a normal distribution characterized by a mean and variance. The mean for linear regression is the transpose of the weight matrix multipled by predictor matrix. The mean for linear regression is the transpose of the weight matrix multiplied by predictor matrix. 
+
+Bayesian linear regression will determine the posterior distribution for model parameters. Here response variable also assumed to come from a normal distribution. 
+
+$P(\beta|y,X) = P(y|\beta, X) * P(\beta|X) / P(y|X)$
+
+Here $P(\beta|y,X)$ is the posterior probability distribution of the model paraters given the inputs and outputs. This is equal to the likelihood of the data $P(y|\beta,X)$, multiplied by the prior probabiliy of the paraters and divded by a normalization constant.
+
+1. Priors: If we have domain knowledge, we can include them in our model paramters. In frequentist approach, all the parameters comes from the data. 
+
+2. Posterior: The result of performing Bayesian linear Regression is a distribution of possible model paraters based on the data and the prior knowledge. If we have fewer data points, the posterier distribution will be more spread out.
+
+
+In this type of model, more the data points will converge to the values obtatined by OLS. Here we start with initial estimate, as we gather more evidence, our model becomes less wrong. 
+
+### Implementation of Bayesian linear regression
+
+In practice, sampling methods to draw samples from posterior in order to approximate the posterior. Drawing random samples from the distribution to approximate the distribution is an application of Monte Carlo methods. 
+
+
+Lets first try to fit a model with just 6 records. Bayesian regression models are good to estimate the model parameters with any number of records. 
+
+
+```{r include = FALSE}
+set.seed(40)
+
+# Very less records
+y = df$Calories %>% head()
+X = as.matrix(as.numeric(unlist(df %>% select(Duration))) %>% head())
+
+model1_lessdata <- BLR(y,XL=X)
+```
+```{r}
+#y = df$Calories %>% head()
+#X = as.matrix(as.numeric(unlist(df %>% select(Duration))) %>% head())
+#model1_lessdata <- BLR(y,XL=X)
+
+print(paste0("Intercept: ",model1_lessdata$bL))
+print(paste0("Intercept: ",model1_lessdata$mu))
+
+
+hist(rnorm(100,model1_lessdata$bL,model1_lessdata$SD.bL),main = 'Bayesian model with 6 records')
+
+```
+
+
+Above plot is an approximate generation of normal distribution on $\hat\beta$. Even the input records is very small, still Bayesian model has the orginal estimate in its distribution. 
+
+
+Now lets try to create a model using all the records in the dataset. 
+
+
+```{r include=FALSE}
+set.seed(40)
+# All records
+y = df$Calories 
+X = as.matrix(as.numeric(unlist(df %>% select(Duration))) )
+
+model2_moredata <- BLR(y,XL=X)
+```
+
+
+
+```{r}
+#y = df$Calories 
+#X = as.matrix(as.numeric(unlist(df %>% select(Duration))) )
+#model2_moredata <- BLR(y,XL=X)
+
+print(paste0("Intercept: ",model2_moredata$bL))
+print(paste0("Beta-hat estimate: ",model2_moredata$mu))
+
+hist(rnorm(100,model2_moredata$bL,model2_moredata$SD.bL),main = 'Bayesian model with all records')
+
+```
+
+
+Above plot shows the exact $\hat\beta$ parameters which we got from OLS method. It also perfectly predicts the intercept of the model. Initially the estimate has a wide normal distribution. It gradually shrinks to the actual value. This is the power of Bayesian Regression.
+
+
+## Conclusions
+
+Bayesian inference and modelling is used in various parts of machine learning. It is important to understand how it works compared to frequentist approch. So it can be used in the correct dataset.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

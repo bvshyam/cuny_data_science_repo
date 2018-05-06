@@ -313,8 +313,7 @@ var(train.df$TARGET)
 
 ```
 
-It seems there is a difference between the mean and variance. It suffers from overdispersion. However, it is a minor difference. We will assume the dispersion as 1.
-
+It seems there is a difference between the mean and variance. It suffers from overdispersion. However, it is a minor difference. We will assume the dispersion as 
 
 
 ```{r include=TRUE, echo=TRUE }
@@ -536,7 +535,7 @@ To overcome this limitation we will transform the dependent variable using log t
 
 ```{r include=TRUE, echo=TRUE }
 
-
+hist(log(train.df$TARGET+.0000000001))
 
 model_13_lm_transform <- lm(log(train.df$TARGET+.0000000001) ~. ,train.df)
 summary(model_13_lm_transform )
@@ -545,6 +544,7 @@ model_13_lm_transform_rm_pred <- update(model_13_lm_transform, .~.-FixedAcidity-
 
 summary(model_13_lm_transform_rm_pred)
 
+round(exp(predict(model_13_lm_transform_rm_pred, newdata = eval, type = "response")))
 
 ```
 
